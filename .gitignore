@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# 运行时数据（隐私 + 可自动重建）
+data/chat.db
+data/chat.db-journal
+data/vectors.npy
+data/image_vectors.npy
+data/chunks.json
+data/settings.json
+data/kb_images/
+data/uploads/
+data_location.txt
+
+# 日志 & 临时脚本
+*.log
+_server.log
+service.log
+_check_db.py
+_inventory.py
+_test_*.py
+cleanup_*.py
+
+# 数字人模块（第三方项目 + 巨型二进制）
+digital_human/
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 编辑器
+.vscode/
+.idea/
+*.swp

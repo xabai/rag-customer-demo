@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+python-docx
+openpyxl
+xlrd
+olefile
+numpy
+requests
+psutil>=5.9.8
