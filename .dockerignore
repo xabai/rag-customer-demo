@@ -1,0 +1,38 @@
+# ====================================================================
+# Docker 构建上下文排除
+# 关键：把 digital_human/pylibs/**（50+ 个 Windows .pyd）和 data/ 排除，
+#       不然构建上下文会有 1GB+，而且 Windows 二进制在 Linux 上跑不了
+# ====================================================================
+
+# --- 永远不进镜像的 ---
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+.trae/
+.venv/
+venv/
+node_modules/
+*.egg-info/
+
+# --- 运行时数据（volume 挂载，不要打进镜像层）---
+data/
+!data/.gitkeep
+
+# --- 数字人独立部署，不要进 compose ---
+digital_human/
+
+# --- 开发临时文件 ---
+*.log
+*.tmp
+*.bak
+*_test.py
+_smoke_test.py
+_e2e_test.py
+test_*.py
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp

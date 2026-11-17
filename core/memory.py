@@ -90,7 +90,7 @@ def _parse_extracted(text):
     return results
 
 
-def maybe_summarize(session_id, history):
+def maybe_summarize(session_id, history, user_id=None):
     """对话轮数超过阈值时，把较早的消息压缩成摘要记忆，返回用于拼装的 history"""
     if len(history) <= SUMMARY_THRESHOLD:
         return history
@@ -103,14 +103,14 @@ def maybe_summarize(session_id, history):
             {"role": "system", "content": SUMMARY_PROMPT.format(history=history_text)}
         ], timeout=60)
         if summary and summary != "无":
-            db.add_memory(session_id, "summary", summary)
+            db.add_memory(session_id, "summary", summary, user_id=user_id)
             return [{"role": "system", "content": f"【对话摘要】{summary}"}] + recent
     except Exception as e:
         print(f"[memory] 摘要失败，保留原历史: {e}")
     return history
 
 
-def extract_and_save(session_id, question, answer):
+def extract_and_save(session_id, question, answer, user_id=None):
     """从一轮问答中提取可长期记忆的信息"""
     try:
         text = f"用户：{question}\n助手：{answer}"
@@ -121,15 +121,15 @@ def extract_and_save(session_id, question, answer):
             return
         parsed = _parse_extracted(extracted)
         for kind, content in parsed:
-            db.add_memory(session_id, kind, content)
+            db.add_memory(session_id, kind, content, user_id=user_id)
             print(f"[memory] 提取长期记忆 [{kind}]: {content}")
     except Exception as e:
         print(f"[memory] 提取失败: {e}")
 
 
-def build_memory_context():
+def build_memory_context(user_id=None):
     """把跨会话记忆拼成 system prompt 片段"""
-    mems = db.list_cross_memories()
+    mems = db.list_cross_memories(user_id=user_id)
     if not mems:
         return ""
     lines = "\n".join(f"- {m['content']}" for m in mems)

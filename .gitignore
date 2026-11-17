@@ -12,6 +12,7 @@ build/
 # 运行时数据（隐私 + 可自动重建）
 data/chat.db
 data/chat.db-journal
+data/chroma/
 data/vectors.npy
 data/image_vectors.npy
 data/chunks.json
@@ -28,6 +29,10 @@ _check_db.py
 _inventory.py
 _test_*.py
 cleanup_*.py
+_sep_trace.py
+_live_test.py
+_debug_*.py
+_create_db.py
 
 # 数字人模块（第三方项目 + 巨型二进制）
 digital_human/

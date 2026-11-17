@@ -4,15 +4,52 @@
 显存调度策略：
 - 向量模型（bge-m3 文本、qwen3-vl-embed 图文）keep_alive=-1，常驻显存
 - 聊天/视觉/探测模型 keep_alive=0，用完立即释放
+
+LLM 配置优先级：core.settings > 根目录 config > 默认值
+前端设置页可以修改 settings.json 里的 ollama_base/模型名/keep_alive。
 """
 import base64
 import io
 import json
+import os
 
 import numpy as np
 import requests
 
 import config
+
+# ---------- 动态 LLM 配置：优先从 settings.json 读取 ----------
+try:
+    from core.settings import get_llm_config as _llm_cfg
+    _LLM_CFG = _llm_cfg()
+except Exception:
+    _LLM_CFG = {}
+
+
+def _cfg(key, default):
+    v = _LLM_CFG.get(key)
+    return v if v not in (None, "") else default
+
+
+def reload_llm_config():
+    """设置页保存后调此函数热更新内存中的 LLM 配置"""
+    global _LLM_CFG
+    try:
+        from core.settings import get_llm_config as _llm_cfg
+        _LLM_CFG = _llm_cfg()
+    except Exception:
+        pass
+
+
+OLLAMA_BASE = _cfg("ollama_base", config.OLLAMA_BASE)
+CHAT_MODEL = _cfg("chat_model", config.CHAT_MODEL)
+VISION_MODEL = _cfg("vision_model", config.VISION_MODEL)
+EMBED_MODEL = _cfg("embed_model", config.EMBED_MODEL)
+VL_EMBED_MODEL = _cfg("vl_embed_model", config.VL_EMBED_MODEL)
+KEEP_ALIVE_EMBED = _cfg("keep_alive_embed", config.KEEP_ALIVE_EMBED)
+KEEP_ALIVE_VL_EMBED = _cfg("keep_alive_vl_embed", config.KEEP_ALIVE_VL_EMBED)
+KEEP_ALIVE_CHAT = _cfg("keep_alive_chat", config.KEEP_ALIVE_CHAT)
+KEEP_ALIVE_VISION = _cfg("keep_alive_vision", config.KEEP_ALIVE_VISION)
 
 
 def _options(keep_alive):
@@ -24,12 +61,18 @@ def _options(keep_alive):
 # 文本向量（bge-m3，常驻）
 # ============================================================
 
-def embed_texts(texts):
-    """调用 bge-m3 批量生成文本向量，返回 (n, dim) 的 float32 数组（已归一化）"""
+def embed_texts(texts, model=None):
+    """批量生成文本向量，返回 (n, dim) 的 float32 数组（已归一化）
+
+    Args:
+        texts: 文本列表
+        model: 可选，embedding 模型名；None 则用 config.EMBED_MODEL
+    """
+    use_model = model or config.EMBED_MODEL
     resp = requests.post(
         f"{config.OLLAMA_BASE}/api/embed",
         json={
-            "model": config.EMBED_MODEL,
+            "model": use_model,
             "input": texts,
             "options": _options(config.KEEP_ALIVE_EMBED),
         },
@@ -126,52 +169,66 @@ def _inject_images(messages, images):
     return msgs
 
 
-def chat_once(messages, model=None, timeout=60, images=None):
-    """非流式调用聊天模型，一次性返回完整文本（用于查询改写等内部任务）"""
-    use_model = model or (config.VISION_MODEL if images else config.CHAT_MODEL)
-    keep = config.KEEP_ALIVE_VISION if images else config.KEEP_ALIVE_CHAT
-    resp = requests.post(
-        f"{config.OLLAMA_BASE}/api/chat",
-        json={
-            "model": use_model,
-            "messages": _inject_images(messages, images),
-            "stream": False,
-            "think": False,
-            "options": _options(keep),
-        },
-        timeout=timeout,
-    )
-    resp.raise_for_status()
-    return resp.json().get("message", {}).get("content", "").strip()
+def chat_once(messages, model=None, timeout=60, images=None, fallback=None):
+    """非流式调用聊天模型，一次性返回完整文本
+
+    多 Provider 路由：优先从 settings.json 读 llm_provider；
+    非 Ollama provider 下 embedding 仍走本地 Ollama。
+    """
+    try:
+        from core import llm_provider
+        return llm_provider.chat_once(messages, model=model, timeout=timeout, images=images)
+    except Exception as e:
+        _log.error("chat_once via llm_provider failed: %s，fallback 到 Ollama", e)
+        # Fallback: 直接走 Ollama
+        use_model = model or (config.VISION_MODEL if images else config.CHAT_MODEL)
+        keep = config.KEEP_ALIVE_VISION if images else config.KEEP_ALIVE_CHAT
+        resp = requests.post(
+            f"{config.OLLAMA_BASE}/api/chat",
+            json={
+                "model": use_model,
+                "messages": _inject_images(messages, images),
+                "stream": False, "think": False, "options": _options(keep),
+            },
+            timeout=timeout,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        content = data.get("message", {}).get("content", "").strip()
+        return content
 
 
-def chat_stream(messages, model=None, images=None):
+def chat_stream(messages, model=None, images=None, fallback=None):
     """调用聊天模型流式输出，逐 token yield 文本
-    images: list[str] base64 编码的图片，含图片时自动切换到 VISION_MODEL"""
-    use_model = model or (config.VISION_MODEL if images else config.CHAT_MODEL)
-    keep = config.KEEP_ALIVE_VISION if images else config.KEEP_ALIVE_CHAT
-    resp = requests.post(
-        f"{config.OLLAMA_BASE}/api/chat",
-        json={
-            "model": use_model,
-            "messages": _inject_images(messages, images),
-            "stream": True,
-            "think": False,
-            "options": _options(keep),
-        },
-        stream=True,
-        timeout=600,
-    )
-    resp.raise_for_status()
-    for line in resp.iter_lines(decode_unicode=True):
-        if not line:
-            continue
-        try:
-            data = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        content = data.get("message", {}).get("content", "")
-        if content:
-            yield content
-        if data.get("done"):
-            break
+
+    多 Provider 路由：优先从 settings.json 读 llm_provider。
+    """
+    try:
+        from core import llm_provider
+        yield from llm_provider.chat_stream(messages, model=model, images=images)
+        return
+    except Exception as e:
+        _log.error("chat_stream via llm_provider failed: %s，fallback 到 Ollama", e)
+        # Fallback: 直接走 Ollama
+        use_model = model or (config.VISION_MODEL if images else config.CHAT_MODEL)
+        keep = config.KEEP_ALIVE_VISION if images else config.KEEP_ALIVE_CHAT
+        resp = requests.post(
+            f"{config.OLLAMA_BASE}/api/chat",
+            json={
+                "model": use_model,
+                "messages": _inject_images(messages, images),
+                "stream": True, "think": False, "options": _options(keep),
+            },
+            stream=True, timeout=600,
+        )
+        resp.raise_for_status()
+        for line in resp.iter_lines(decode_unicode=True):
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            content = data.get("message", {}).get("content", "")
+            if content:
+                yield content

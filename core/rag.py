@@ -83,9 +83,69 @@ def _chunk_key(chunk):
     return (chunk.get("doc_id", ""), chunk.get("text", ""))
 
 
+def _detect_query_mode(question):
+    """启发式判断用户意图是"要整图"还是"问具体值"
+
+    Returns:
+        str|None: "image_first" | "value_first" | None(默认)
+    """
+    q = question
+    # "要整图"信号
+    image_hints = [
+        "图片", "图", "照片", "截图", "给我看", "看一下", "附上", "附图",
+        "图示", "示意图", "图表", "柱状图", "饼图", "架构图", "流程图",
+        "界面", "界面图", "页面图",
+    ]
+    if any(w in q for w in image_hints):
+        return "image_first"
+
+    # "问具体值"信号
+    value_hints = [
+        "多少", "几克", "什么版本", "版本号", "参数表第", "具体数值",
+        "具体值", "是多少", "有多大", "多长", "多高", "多重",
+        "参数多少", "规格多少",
+    ]
+    if any(w in q for w in value_hints):
+        return "value_first"
+
+    return None
+
+
+def _rerank_with_query_mode(hits, query_mode):
+    """根据 query_mode 对 hits 做加权重排（轻量，在 cross-encoder rerank 之后）
+
+    - image_first: 有 layout_elements 且包含 image 的 chunk 加 0.05
+    - value_first: layout_elements 里有 ocr_specs/ocr_table 的 chunk 加 0.05
+    """
+    if not query_mode or not hits:
+        return hits
+
+    boosted = []
+    for item in hits:
+        score, chunk = item
+        boost = 0.0
+        layout = chunk.get("layout") or []
+        images_in_layout = [el for el in layout if el.get("type") == "image"]
+
+        if query_mode == "image_first" and images_in_layout:
+            boost += 0.05
+        elif query_mode == "value_first":
+            structured_any = any(
+                el.get("ocr_kind") in ("kv", "table")
+                for el in images_in_layout
+            )
+            if structured_any:
+                boost += 0.08
+
+        boosted.append((score + boost, chunk))
+
+    boosted.sort(key=lambda x: x[0], reverse=True)
+    return boosted
+
+
 def retrieve(question, rerank_enabled=True, vector_weight=0.7, candidates=20,
              hybrid_enabled=False, hybrid_vector_weight=0.6, kb_id=None,
-             user_images=None):
+             user_images=None, query_mode=None):
     """检索相关知识块
 
     user_images: 用户上传的图片 base64 列表（多模态对话）
@@ -174,6 +234,8 @@ def retrieve(question, rerank_enabled=True, vector_weight=0.7, candidates=20,
 
     if rerank_enabled:
         hits = rerank(question, hits, vector_weight)
+    # query_mode 加权（轻量，在 rerank 之后、top_k 截断之前）
+    hits = _rerank_with_query_mode(hits, query_mode)
     hits = hits[:config.TOP_K]
 
     # 父子分块：命中子块后用其父块作为上下文，并对同一父块去重
@@ -185,15 +247,19 @@ def retrieve(question, rerank_enabled=True, vector_weight=0.7, candidates=20,
         if key in seen_parents:
             continue
         seen_parents.add(key)
-        context_parts.append(f"[资料{len(context_parts) + 1}] {parent}")
+        ref_num = len(context_parts) + 1
+        context_parts.append(f"[资料{ref_num}] {parent}")
         src = {
             "doc": chunk["doc_name"],
             "score": round(score, 3),
             "doc_id": chunk.get("doc_id"),
             "chunk_index": chunk.get("chunk_index", 0),
+            "text": chunk.get("text", ""),        # 原始 chunk 文本（给链路详情展示）
+            "parent": parent,                      # 父块文本（LLM 实际收到的）
+            "ref_num": ref_num,                    # 对应资料编号 [资料N]
             "has_image": bool(chunk.get("image")),
             "has_layout": bool(chunk.get("layout")),
-            "image": chunk.get("image") or None,  # 给前端渲染用，已在 vector_store 转好 URL
+            "image": chunk.get("image") or None,   # 给前端渲染用，已在 vector_store 转好 URL
         }
         sources.append(src)
         if chunk.get("image"):
@@ -265,7 +331,7 @@ def retrieve_debug(question, top_k=5, kb_id=None):
 
 
 def build_messages(question, history, use_kb=True, model=None, kb_id=None, user_images=None):
-    """组装发给聊天模型的 messages；支持多模态图片输入"""
+    """组装发给聊天模型的 messages；支持多模态图片输入 + 查询模式自动分流"""
     cfg = settings.load_settings()
     matched = False
     kb_images = []
@@ -274,6 +340,8 @@ def build_messages(question, history, use_kb=True, model=None, kb_id=None, user_
             rewrite_query(question, history, model)
             if cfg.get("rewrite_enabled", True) else question
         )
+        # 自动检测查询模式（要整图 / 问具体值 / 默认）
+        query_mode = _detect_query_mode(question)
         context, sources, kb_images = retrieve(
             search_q,
             rerank_enabled=cfg.get("rerank_enabled", True),
@@ -283,6 +351,7 @@ def build_messages(question, history, use_kb=True, model=None, kb_id=None, user_
             hybrid_vector_weight=cfg.get("hybrid_vector_weight", 0.6),
             kb_id=kb_id,
             user_images=user_images,
+            query_mode=query_mode,
         )
         matched = bool(context)
         system = cfg["kb_prompt"].format(context=context) if context else cfg["no_match_prompt"]

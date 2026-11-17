@@ -199,3 +199,50 @@ def match_faq(question):
     if best and best_score >= threshold:
         return best["answer"], round(best_score, 3)
     return None
+
+
+# 问候/闲聊短句 —— 包含以下关键词且不含产品实体词 → 直接回复预设
+GREETING_KEYWORDS = (
+    "你好", "您好", "嗨", "hi", "hello", "在吗", "在么", "忙吗", "空吗",
+    "早上好", "下午好", "晚上好", "大家好", "哈喽",
+    "你是谁", "你能做什么", "你是干什么的", "介绍一下自己", "你是",
+    "再见", "拜拜", "bye", "谢谢", "谢谢你", "感谢",
+)
+
+# 如果用户问题里包含这些实体词（产品/服务相关），说明不是纯问候，应该走 RAG
+ENTITY_HINTS = (
+    "退货", "退款", "订单", "价格", "发票", "保修", "维修", "售后",
+    "产品", "商品", "购买", "下载", "安装", "使用", "怎么用", "如何",
+    "联系", "客服", "人工", "投诉", "问题", "故障", "报错",
+    "多少钱", "优惠", "活动", "包邮", "配送",
+)
+
+
+def is_greeting(question):
+    """判断用户问题是否是纯问候/闲聊短句（不该走 RAG，直接回复预设）
+
+    规则（按顺序短路）：
+    1. 问题里**包含任何实体/产品相关词** → 不是问候（哪怕开头有"你好"）
+    2. 否则，**包含问候关键词** → 是问候
+    3. 关键词匹配后再看字长：如果超过 50 字，大概率是用户在描述一个长问题，排除
+    """
+    q = (question or "").strip().lower()
+    if not q:
+        return False
+    # 实体词优先：有任何产品/服务相关词 → 不是纯问候
+    if any(ent in q for ent in ENTITY_HINTS):
+        return False
+    # 没有实体词 + 包含问候关键词 → 是问候
+    has_greet = any(kw in q for kw in GREETING_KEYWORDS)
+    if not has_greet:
+        return False
+    # 超长排除：超过 50 字大概率是用户在讲具体事情
+    if len(q) > 50:
+        return False
+    return True
+
+
+GREETING_REPLY = (
+    "你好！我是智能客服助手，有什么可以帮您的？\n"
+    "您可以直接问我产品相关问题，比如：退货政策、如何下单、产品功能等。"
+)

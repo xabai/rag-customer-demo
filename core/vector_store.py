@@ -55,11 +55,12 @@ class VectorStore:
     # ---------- 文档操作 ----------
     def add_document(self, doc_name, chunk_texts, vectors, kb_id="default",
                      parent_texts=None, chunk_images=None, layout_meta=None,
-                     image_vectors=None):
+                     image_vectors=None, parent_ids=None):
         """新增文档
 
         layout_meta: list[list[dict]] — 每个 chunk 的 elements 原始数据（图文关联元数据）
         image_vectors: np.ndarray (n, VL_EMBED_DIM) — 图文向量，无图片的 chunk 用零向量占位
+        parent_ids: list[str] — 每个子块所属父块的唯一 ID（给检索后同一父块去重用）
         """
         with self._lock:
             doc_id = f"doc_{int(time.time() * 1000)}"
@@ -67,6 +68,8 @@ class VectorStore:
                 rec = {"doc_id": doc_id, "doc_name": doc_name, "text": text, "kb_id": kb_id}
                 if parent_texts and i < len(parent_texts) and parent_texts[i]:
                     rec["parent_text"] = parent_texts[i]
+                if parent_ids and i < len(parent_ids) and parent_ids[i]:
+                    rec["parent_id"] = parent_ids[i]
                 if chunk_images and i < len(chunk_images) and chunk_images[i]:
                     rec["image"] = chunk_images[i]
                 if layout_meta and i < len(layout_meta) and layout_meta[i]:
@@ -115,8 +118,17 @@ class VectorStore:
             bm25.mark_dirty()
             return True
 
-    def list_documents(self):
-        return sorted(self._docs.values(), key=lambda d: d["created"], reverse=True)
+    def list_documents(self, page=1, page_size=None):
+        """page_size=None 时保持旧行为返回 list；否则返回 {items, total, page, page_size, pages}"""
+        items = sorted(self._docs.values(), key=lambda d: d["created"], reverse=True)
+        if page_size is None:
+            return items
+        ps = max(1, int(page_size))
+        total = len(items)
+        pages = max(1, (total + ps - 1) // ps)
+        p = max(1, min(int(page), pages))
+        start = (p - 1) * ps
+        return {"items": items[start:start + ps], "total": total, "page": p, "page_size": ps, "pages": pages}
 
     def get_document_chunks(self, doc_id):
         with self._lock:

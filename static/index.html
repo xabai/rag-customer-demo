@@ -5,8 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RAG AI 客服</title>
 <style>
-  /* ========== 浅色 SaaS 主题变量 ========== */
-  :root {
+  /* ========== AI 主题变量（深色默认 + 明亮切换） ========== */
+  :root, :root[data-theme="dark"] {
+    --bg: #0f1115;
+    --bg-soft: #161a21;
+    --card: #1a1f2a;
+    --card-solid: #1a1f2a;
+    --border: #2a3040;
+    --text-h: #e8ecf4;
+    --text: #c8cfdc;
+    --text-sub: #8a93a6;
+    --text-dim: #5a6478;
+    --accent: #3b82f6;
+    --accent2: #6366f1;
+    --accent-soft: rgba(59,130,246,.18);
+    --green: #22c55e;
+    --red: #ef4444;
+    --orange: #f59e0b;
+    --card-shadow: 0 1px 3px rgba(0,0,0,.3);
+    --scrollbar: #2a3040;
+    --scrollbar-hover: #3b4255;
+    --color-scheme: dark;
+  }
+  :root[data-theme="light"] {
     --bg: #f5f7fa;
     --bg-soft: #f1f5f9;
     --card: #ffffff;
@@ -23,17 +44,67 @@
     --red: #ef4444;
     --orange: #d97706;
     --card-shadow: 0 1px 2px rgba(0,0,0,.04);
+    --scrollbar: #cbd5e1;
+    --scrollbar-hover: #94a3b8;
+    --color-scheme: light;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; }
-  /* Vue 挂载点：顶栏 + 主区垂直布局 */
-  #app { display: flex; flex-direction: column; height: 100vh; }
-  /* 全局滚动条 */
+  body { font-family: "Inter", "Microsoft YaHei", "PingFang SC", sans-serif; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; }
+  #app { height: 100vh; width: 100%; }
+  #app-main { display: flex; flex-direction: column; height: 100vh; }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-  select, input, textarea { color-scheme: light; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+  select, input, textarea { color-scheme: var(--color-scheme); }
+
+  /* ========== 登录/注册页 ========== */
+  #login-wrap {
+    height: 100vh; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #0f1115 0%, #1a1f2a 50%, #0f1115 100%);
+    position: relative; overflow: hidden;
+  }
+  #login-wrap::before {
+    content: ''; position: absolute; width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(59,130,246,.15) 0%, transparent 70%);
+    top: -200px; left: -150px; border-radius: 50%;
+  }
+  #login-wrap::after {
+    content: ''; position: absolute; width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(99,102,241,.12) 0%, transparent 70%);
+    bottom: -150px; right: -100px; border-radius: 50%;
+  }
+  #login-card {
+    position: relative; z-index: 1;
+    width: 380px; padding: 40px 36px 32px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+  .login-logo { font-size: 48px; text-align: center; margin-bottom: 12px; }
+  .login-title { font-size: 22px; font-weight: 700; color: var(--text-h); text-align: center; letter-spacing: .5px; }
+  .login-sub { font-size: 13px; color: var(--text-sub); text-align: center; margin-top: 4px; margin-bottom: 28px; }
+  .login-form input {
+    width: 100%; padding: 11px 14px; margin-bottom: 12px;
+    background: var(--bg-soft); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-h); font-size: 14px; outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .login-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+  .login-form input::placeholder { color: var(--text-dim); }
+  .login-btn {
+    width: 100%; padding: 12px; margin-top: 6px;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: #fff; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 600; letter-spacing: 2px;
+    cursor: pointer; transition: all .15s;
+  }
+  .login-btn:hover { box-shadow: 0 4px 16px rgba(59,130,246,.35); transform: translateY(-1px); }
+  .login-error { color: var(--red); font-size: 12px; text-align: center; margin-bottom: 8px; }
+  .login-switch { margin-top: 16px; text-align: center; font-size: 13px; color: var(--text-sub); }
+  .login-switch a { color: var(--accent); cursor: pointer; margin-left: 4px; text-decoration: none; }
+  .login-switch a:hover { text-decoration: underline; }
+  .login-tip { margin-top: 20px; text-align: center; font-size: 12px; color: var(--text-dim); }
 
   /* ========== 顶部横向导航栏 ========== */
   #navbar { height: 56px; flex-shrink: 0; background: var(--card); border-bottom: 1px solid var(--border);
@@ -43,8 +114,40 @@
   #navbar .nav-item { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: transparent; color: var(--text-sub);
     border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all .15s; white-space: nowrap; }
   #navbar .nav-item:hover { background: var(--bg-soft); color: var(--text-h); }
-  #navbar .nav-item.active { background: linear-gradient(135deg, rgba(14,165,233,.12), rgba(37,99,235,.10)); color: var(--accent); font-weight: 600; }
+  #navbar .nav-item.active { background: rgba(59,130,246,.15); color: var(--accent); font-weight: 600; }
   #navbar .navbar-right { display: flex; align-items: center; gap: 12px; }
+
+  /* 用户菜单 */
+  .user-menu { position: relative; }
+  .user-trigger {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px;
+    background: transparent; border: 1px solid var(--border); border-radius: 24px;
+    cursor: pointer; color: var(--text); transition: all .15s; font-size: 13px;
+  }
+  .user-trigger:hover { background: var(--bg-soft); border-color: var(--accent); }
+  .user-trigger .avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: #fff; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .user-trigger .uname { font-weight: 500; color: var(--text-h); }
+  .user-trigger .urole {
+    font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600;
+  }
+  .user-trigger .urole.role-superadmin { background: rgba(239,68,68,.15); color: #f87171; }
+  .user-trigger .urole.role-admin { background: rgba(245,158,11,.15); color: #fbbf24; }
+  .user-trigger .urole.role-user { background: rgba(34,197,94,.15); color: #4ade80; }
+  .user-dropdown {
+    position: absolute; right: 0; top: 42px; min-width: 160px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.4); overflow: hidden; z-index: 100;
+  }
+  .dropdown-item {
+    padding: 10px 14px; font-size: 13px; color: var(--text);
+    cursor: pointer; transition: all .1s;
+  }
+  .dropdown-item:hover { background: var(--bg-soft); color: var(--text-h); }
 
   /* ========== 主区公共 ========== */
   #main { flex: 1; display: flex; min-width: 0; min-height: 0; }
@@ -76,21 +179,7 @@
   @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   .msg.user { margin-left: auto; background: linear-gradient(135deg, #0ea5e9, #2563eb); color: #fff; border-bottom-right-radius: 4px; }
   .msg.assistant { margin-right: auto; background: var(--card); border: 1px solid var(--border); border-bottom-left-radius: 4px; color: var(--text); }
-  .msg .sources { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 12px; color: var(--text-sub); }
-  /* 引用芯片（可点击跳转分块） */
-  .src-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; margin: 2px 4px 2px 0; background: var(--accent-soft); color: var(--accent); border-radius: 12px; cursor: pointer; font-size: 12px; transition: all .15s; }
-  .src-chip:hover { background: var(--accent); color: #fff; transform: translateY(-1px); }
-  .src-chip i { font-style: normal; font-size: 11px; opacity: .75; }
-  /* 相关图片卡片区 —— 答案和参考来源之间 */
-  .ans-images { margin: 14px 0 10px; padding: 10px 12px; background: linear-gradient(135deg, rgba(99,102,241,.06), rgba(14,165,233,.04)); border: 1px solid rgba(99,102,241,.15); border-radius: 12px; }
-  .ans-images-title { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 8px; letter-spacing: .5px; }
-  .ans-images-grid { display: flex; flex-wrap: wrap; gap: 10px; }
-  .ans-img-card { background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); transition: transform .15s, box-shadow .15s; cursor: pointer; }
-  .ans-img-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
-  .ans-img { width: 180px; height: 120px; object-fit: cover; display: block; background: #f1f5f9; }
-  .ans-img-footer { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; gap: 8px; }
-  .ans-img-src { font-size: 11px; color: var(--text-sub); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ans-img-score { font-size: 11px; color: var(--accent); font-weight: 600; white-space: nowrap; }
+  .msg .inline-img { max-width: 100%; border-radius: 8px; margin: 8px 0; display: block; }
   /* 阶段提示（检索/生成中） */
   .stage-tip { margin-top: 8px; font-size: 13px; color: var(--accent); display: flex; align-items: center; gap: 6px; }
   .stage-tip::before { content: ''; width: 14px; height: 14px; border: 2px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
@@ -107,6 +196,25 @@
   .trace-stage-row { display: flex; gap: 8px; font-size: 12px; margin-top: 4px; }
   .trace-stage-label { color: var(--text-dim); min-width: 40px; }
   .trace-stage-val { color: var(--text); word-break: break-all; }
+
+  /* 链路详情展开内容 */
+  .trace-detail-block { margin-top: 10px; padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
+  .tdb-title { font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 8px; }
+  .tdb-chunk { padding: 8px 10px; margin-bottom: 6px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; }
+  .tdb-chunk-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 11px; }
+  .tdb-doc { color: #0369a1; font-weight: 600; }
+  .tdb-score { color: #059669; font-family: Consolas, monospace; }
+  .tdb-idx { color: #94a3b8; font-family: Consolas, monospace; }
+  .tdb-chunk-text { font-size: 12px; color: #334155; line-height: 1.5; max-height: 120px; overflow-y: auto; }
+  .tdb-msg { padding: 6px 10px; margin-bottom: 4px; border-radius: 6px; font-size: 12px; display: flex; gap: 8px; }
+  .tdb-msg-system { background: #f1f5f9; border-left: 3px solid #64748b; }
+  .tdb-msg-user { background: #dbeafe; border-left: 3px solid #3b82f6; }
+  .tdb-msg-assistant { background: #dcfce7; border-left: 3px solid #22c55e; }
+  .tdb-msg-role { font-weight: 600; min-width: 70px; text-transform: uppercase; font-size: 11px; opacity: 0.7; flex-shrink: 0; }
+  .tdb-msg-content { white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
+
+  /* ECharts 容器 */
+  .chart-echarts { width: 100%; height: 320px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .msg .msg-imgs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
   .msg .msg-imgs img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
@@ -184,7 +292,35 @@
   .dash-content { flex: 1; min-width: 0; }
   .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; box-shadow: var(--card-shadow); }
   .chart-title { font-size: 13px; font-weight: 600; color: var(--text-h); margin: 20px 0 10px; }
-  .dash-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .dash-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; flex-wrap: wrap; }
+  /* 系统健康检查 */
+  .syshealth-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;
+  }
+  .syshealth-card {
+    border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+    background: var(--card); transition: border-color .15s;
+  }
+  .syshealth-card.sh-ok { border-color: #22c55e; background: #f0fdf4; }
+  .syshealth-card.sh-fail { border-color: #ef4444; background: #fef2f2; }
+  .syshealth-card.sh-skip { border-color: var(--border); opacity: .7; }
+  .syshealth-card.sh-unknown { border-color: var(--border); opacity: .5; }
+  .sh-title { font-size: 13px; font-weight: 600; color: var(--text-h); }
+  .sh-status { margin-top: 8px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .sh-icon { font-size: 14px; }
+  .sh-lat { font-family: Consolas, monospace; color: #22c55e; font-weight: 600; }
+  .sh-err { color: #ef4444; font-size: 12px; word-break: break-all; }
+  /* 成本追踪 */
+  .cost-cards {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .cost-card {
+    border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+    background: var(--card);
+  }
+  .cost-label { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+  .cost-val { font-size: 20px; font-weight: 700; font-family: Consolas, monospace; color: var(--accent); }
+  @media (max-width: 900px) { .cost-cards { grid-template-columns: repeat(2, 1fr); } }
   .seg { display: inline-flex; background: var(--bg-soft); border-radius: 8px; padding: 2px; }
   .seg button { padding: 6px 12px; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text-sub); transition: all .15s; }
   .seg button.active { background: var(--card); color: var(--accent); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
@@ -237,7 +373,7 @@
 
   /* ========== 弹窗 ========== */
   .modal-mask { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 420px; max-width: 92vw; box-shadow: 0 20px 50px rgba(0,0,0,.15); animation: modalIn .18s ease; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 560px; max-width: 94vw; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,.15); animation: modalIn .18s ease; }
   @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
   .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--text-h); }
   .modal .field { margin-bottom: 14px; }
@@ -252,6 +388,33 @@
   .modal .btn-ok { background: linear-gradient(135deg, #0ea5e9, #2563eb); border: none; border-radius: 8px; padding: 8px 18px; cursor: pointer; font-size: 13px; color: #fff; font-weight: 600; transition: all .15s; }
   .modal .btn-ok:hover { box-shadow: 0 4px 12px rgba(14,165,233,.3); }
   .modal .btn-ok:disabled { opacity: .6; cursor: wait; box-shadow: none; }
+  /* 上传弹窗 —— Dify 风格分块卡片 */
+  .modal .chunk-card { flex: 1; min-width: 280px; background: var(--card); border: 2px solid var(--border); border-radius: 10px; padding: 14px 16px; transition: all .15s; cursor: pointer; }
+  .modal .chunk-card:hover { border-color: rgba(14,165,233,.4); }
+  .modal .chunk-card-active { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(14,165,233,.15); }
+  .modal .chunk-card-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .modal .chunk-card-head input[type="radio"] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+  .modal .chunk-card-icon { font-size: 16px; }
+  .modal .chunk-card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .modal .chunk-card-desc { font-size: 11px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.5; }
+  .modal .chunk-card-param { margin-top: 10px; }
+  .modal .chunk-card-param label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 4px; }
+  .modal .chunk-card-param input[type="text"] { width: 100%; border: 1px solid var(--border); background: var(--bg-soft); color: var(--text-h); border-radius: 6px; padding: 7px 10px; font-size: 12px; box-sizing: border-box; outline: none; }
+  .modal .chunk-card-param input[type="text"]:focus { border-color: var(--accent); }
+  .modal .chunk-card-param input[type="range"] { width: 60%; accent-color: var(--accent); vertical-align: middle; }
+  .modal .chunk-card-divider { height: 1px; background: var(--border); margin: 12px 0; }
+  /* 文本预处理 —— Dify 风格 toggle switches */
+  .modal .preprocess-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .modal .pp-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all .15s; }
+  .modal .pp-item:hover { border-color: rgba(14,165,233,.4); background: #f8fafc; }
+  .modal .pp-item input[type="checkbox"] { display: none; }
+  .modal .pp-switch { display: inline-block; position: relative; flex-shrink: 0; width: 36px; height: 20px; background: #cbd5e1; border-radius: 10px; transition: background .2s; }
+  .modal .pp-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  .modal .pp-item input:checked + .pp-switch { background: var(--accent, #0ea5e9); }
+  .modal .pp-item input:checked + .pp-switch::after { transform: translateX(16px); }
+  .modal .pp-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .modal .pp-text b { font-size: 13px; color: var(--text-h); font-weight: 600; line-height: 1.3; }
+  .modal .pp-text small { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
   .upload-tab { padding: 8px 16px; cursor: pointer; font-size: 13px; border-bottom: 2px solid transparent; color: var(--text-sub); transition: all .15s; }
   .upload-tab.active { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
 
@@ -304,6 +467,69 @@
   #chunk-viewer .cv-back:hover { text-decoration: underline; }
   #chunk-viewer .cv-title { font-size: 16px; font-weight: 600; color: var(--text-h); margin-bottom: 4px; }
   #chunk-viewer .cv-sub { font-size: 13px; color: var(--text-sub); margin-bottom: 16px; }
+  /* 父子分块预览（Dify 风格） */
+  .parent-chunk {
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+  }
+  .pc-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1.5px dashed #e2e8f0;
+    margin-bottom: 10px;
+  }
+  .pc-title { font-weight: 700; color: #0f172a; font-size: 14px; }
+  .pc-meta { color: #94a3b8; font-size: 12px; }
+  .pc-flat-tag {
+    background: #fef3c7; color: #92400e;
+    font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  }
+  .pc-parent-text {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.75;
+    color: #334155;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 12px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .pc-children-title {
+    font-size: 12px; color: #64748b;
+    padding: 4px 0 8px 0;
+  }
+  /* 子块卡片：灰色背景 + 编号（区分普通 chunk-card） */
+  .parent-chunk .chunk-card {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    position: relative;
+  }
+  .parent-chunk .chunk-card::before {
+    content: "子块 " attr(data-child-index);
+    display: inline-block;
+    position: absolute;
+    top: -10px; left: 12px;
+    background: #64748b; color: #fff;
+    font-size: 11px; font-weight: 600;
+    padding: 1px 8px; border-radius: 10px;
+  }
+  .parent-chunk .chunk-card:hover {
+    background: #e0e7ff;
+    border-color: #6366f1;
+  }
+
   .chunk-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 12px; transition: border-color .15s; box-shadow: var(--card-shadow); }
   .chunk-card:hover { border-color: rgba(14,165,233,.3); }
   .chunk-card .ch-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -410,21 +636,386 @@
   #avatar-panel .avatar-frame { flex: 1; position: relative; overflow: hidden; }
   #avatar-panel iframe { width: 100%; height: 100%; border: none; display: block; }
   #avatar-panel .avatar-mini-hint { color: rgba(255,255,255,.55); font-size: 12px; padding: 0 4px 6px 10px; }
+
+  /* ========== 强制下线全屏模态 ========== */
+  #kick-mask {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,.75); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: auto;  /* 拦截所有点击 */
+    animation: kickFade .2s ease;
+  }
+  @keyframes kickFade { from { opacity: 0; } to { opacity: 1; } }
+  #kick-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px 40px; text-align: center;
+    max-width: 380px; box-shadow: 0 24px 60px rgba(0,0,0,.5);
+    animation: kickIn .25s ease;
+  }
+  @keyframes kickIn { from { transform: scale(.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .kick-icon { font-size: 56px; margin-bottom: 16px; }
+  .kick-title { font-size: 20px; font-weight: 700; color: var(--text-h); margin-bottom: 10px; }
+  .kick-desc { font-size: 13px; color: var(--text-sub); line-height: 1.7; margin-bottom: 24px; }
+  #kick-back {
+    padding: 11px 36px; background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 600; letter-spacing: 1px;
+    cursor: pointer; transition: all .15s;
+  }
+  #kick-back:hover { box-shadow: 0 6px 20px rgba(239,68,68,.4); transform: translateY(-1px); }
+
+  /* ============ 密码二次验证弹窗 ============ */
+  .pw-mask {
+    position: fixed; inset: 0; z-index: 9998;
+    background: rgba(0,0,0,.6); backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center;
+    animation: kickFade .15s ease;
+  }
+  .pw-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px 32px; width: 380px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.4);
+  }
+  .pw-title { font-size: 16px; font-weight: 700; color: var(--text-h); margin-bottom: 6px; }
+  .pw-desc { font-size: 13px; color: var(--text-sub); margin-bottom: 16px; line-height: 1.5; }
+  .pw-input {
+    width: 100%; padding: 10px 14px; font-size: 14px;
+    background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-h); box-sizing: border-box; outline: none;
+  }
+  .pw-input:focus { border-color: var(--accent); }
+  .pw-input:disabled { opacity: .6; }
+  .pw-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+  .pw-error { font-size: 12px; color: #ef4444; margin-top: 8px; }
+
+  /* ============ 安全审计看板 ============ */
+  .audit-content { flex: 1; padding: 20px; overflow-y: auto; }
+  .audit-toolbar {
+    display: flex; gap: 10px; align-items: center;
+    margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .audit-title { font-size: 16px; font-weight: 700; color: var(--text-h); }
+  .audit-search {
+    padding: 7px 12px; font-size: 13px; width: 200px;
+    background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-h); outline: none;
+  }
+  .audit-search:focus { border-color: var(--accent); }
+  .audit-select {
+    padding: 7px 10px; font-size: 13px;
+    background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-h); outline: none; cursor: pointer;
+  }
+  .audit-empty {
+    padding: 48px; text-align: center;
+    color: var(--text-dim); font-size: 13px;
+  }
+  .log-box {
+    background: var(--bg-soft); border-radius: 8px; padding: 16px 18px;
+    max-height: 600px; overflow-y: auto; font-size: 12px; line-height: 1.7;
+    font-family: 'Consolas', 'Monaco', monospace;
+    margin: 0; color: var(--text); white-space: pre-wrap;
+    border: 1px solid var(--border);
+  }
+  .audit-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  .audit-table th {
+    text-align: left; padding: 10px 12px;
+    background: var(--bg-soft); color: var(--text-dim);
+    font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+    border-bottom: 1px solid var(--border);
+  }
+  .audit-table td {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    color: var(--text); max-width: 280px;
+  }
+  .audit-table tbody tr:hover { background: var(--bg-soft); }
+  /* 组织架构 / 角色权限 双栏布局 */
+  .split-wrap { display: flex; gap: 16px; align-items: flex-start; }
+  .split-left { flex: 0 0 260px; }
+  .split-right { flex: 1; min-width: 0; }
+  .org-card {
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 8px; cursor: pointer; background: var(--card); transition: all .15s;
+  }
+  .org-card:hover { border-color: var(--accent); }
+  .org-card.active { border-color: var(--accent); background: var(--accent-soft); }
+  .org-card-title { font-size: 14px; font-weight: 600; color: var(--text-h); }
+  .org-card-sub { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+  .org-card-ops { margin-top: 8px; display: flex; gap: 6px; }
+  .btn-mini {
+    padding: 2px 8px; font-size: 11px; border-radius: 5px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--card); color: var(--text-sub);
+  }
+  .btn-mini:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-mini.btn-danger:hover { border-color: #ef4444; color: #ef4444; }
+  .perm-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 8px; padding: 4px 0;
+  }
+  .perm-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    border: 1px solid var(--border); border-radius: 8px; font-size: 13px;
+    background: var(--card); cursor: pointer;
+  }
+  .perm-item:hover { border-color: var(--accent); }
+  .perm-item code { margin-left: auto; font-size: 11px; }
+  .assign-mask {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    display: flex; align-items: center; justify-content: center; z-index: 999;
+  }
+  .assign-box {
+    width: 380px; background: var(--card); border-radius: 12px;
+    padding: 20px; border: 1px solid var(--border);
+  }
+  .assign-label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 5px; }
+  /* 设置页 LLM tab */
+  .fb-input {
+    width: 100%; border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; font-size: 13px; background: var(--card); color: var(--text-h);
+    outline: none; margin-top: 4px;
+  }
+  .fb-input:focus { border-color: var(--accent); }
+  .llm-model-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+  }
+  .llm-model-field label {
+    font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 4px;
+  }
+  .llm-model-field select { margin-bottom: 6px; }
+  .llm-keepalive-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .llm-keepalive-grid > div label {
+    font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 4px;
+  }
+  .llm-keepalive-grid input {
+    width: 100%; border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; font-size: 13px; background: var(--card); color: var(--text-h);
+    outline: none;
+  }
+  .llm-test-result {
+    margin-top: 12px; padding: 12px 14px; border-radius: 8px; font-size: 13px;
+    border: 1px solid;
+  }
+  .llm-test-result.llm-ok { background: rgba(34,197,94,.08); border-color: #22c55e; }
+  .llm-test-result.llm-fail { background: rgba(239,68,68,.08); border-color: #ef4444; }
+  .llm-test-head { display: flex; align-items: center; font-weight: 600; }
+  .llm-test-sample { margin-top: 6px; font-size: 13px; line-height: 1.5; color: var(--text-sub); }
+
+  /* 转人工确认卡 */
+  .handoff-suggest {
+    margin: 12px 0 4px 0;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #f59e0b;
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  .hs-message {
+    color: #78350f;
+    font-weight: 500;
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+  .hs-actions {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .hs-btn {
+    padding: 6px 14px; font-size: 13px; border-radius: 6px; border: 1px solid transparent;
+    cursor: pointer; transition: all .15s; font-weight: 500;
+  }
+  .hs-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .hs-confirm {
+    background: #059669; color: #fff;
+    border-color: #059669;
+  }
+  .hs-confirm:hover:not(:disabled) { background: #047857; }
+  .hs-decline {
+    background: #fff; color: #78350f;
+    border-color: #f59e0b;
+  }
+  .hs-decline:hover { background: #fef3c7; }
+  /* 统一分页控件 */
+  .page-nav {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 10px 0; font-size: 13px; color: var(--text-sub);
+  }
+  .page-nav select, .page-nav input {
+    border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px;
+    background: var(--card); color: var(--text-h); font-size: 12px; outline: none;
+  }
+  .page-nav select:focus, .page-nav input:focus { border-color: var(--accent); }
+  .page-btn {
+    min-width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--card); color: var(--text-sub); cursor: pointer; font-size: 12px;
+  }
+  .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .page-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .col-time { white-space: nowrap; color: var(--text-sub); font-size: 12px; }
+  .col-action code {
+    background: var(--bg-soft); padding: 2px 8px; border-radius: 4px;
+    font-size: 12px; color: var(--accent);
+  }
+  .col-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .col-actions { white-space: nowrap; }
+  .dim { color: var(--text-dim); font-size: 12px; }
+
+  /* badge 标签 */
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 11px; font-weight: 600; letter-spacing: .3px;
+  }
+  .badge-ok { background: rgba(16,185,129,.15); color: #10b981; }
+  .badge-err { background: rgba(239,68,68,.15); color: #ef4444; }
+  .badge-warn { background: rgba(245,158,11,.15); color: #f59e0b; }
+  .badge-role-user { background: rgba(59,130,246,.15); color: #3b82f6; }
+  .badge-role-admin { background: rgba(139,92,246,.15); color: #8b5cf6; }
+  .badge-role-superadmin { background: rgba(239,68,68,.15); color: #f87171; }
+
+  .btn-small {
+    padding: 4px 12px; font-size: 12px; border-radius: 5px;
+    background: var(--bg-soft); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer; margin-right: 4px;
+    transition: all .12s;
+  }
+  .btn-small:hover:not(:disabled) { background: rgba(59,130,246,.15); border-color: var(--accent); color: var(--accent); }
+  .btn-small:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-danger { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.4); color: #f87171; }
+  .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,.2); border-color: #ef4444; color: #ef4444; }
+
+  /* ========== 记忆视图：搜索栏 + 卡片 ========== */
+  .mem-filter-bar {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+    padding: 12px 14px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: var(--card-shadow);
+  }
+  .mem-search {
+    flex: 1; height: 36px; padding: 0 12px;
+    background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-h); font-size: 13px; outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .mem-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .mem-kind-filter {
+    height: 36px; padding: 0 10px;
+    background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text-h); font-size: 13px; outline: none; cursor: pointer;
+  }
+  .mem-refresh {
+    height: 36px; width: 36px; border-radius: 8px;
+    background: var(--bg-soft); border: 1px solid var(--border);
+    font-size: 16px; cursor: pointer; transition: all .15s;
+  }
+  .mem-refresh:hover { border-color: var(--accent); }
+  .mem-count { font-size: 12px; color: var(--text-dim); margin-left: auto; }
+
+  .mem-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--card-shadow);
+    transition: border-color .15s;
+  }
+  .mem-card:hover { border-color: var(--accent); }
+  .mem-row-1 { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .mem-main { flex: 1; cursor: pointer; min-width: 0; }
+  .mem-summary { font-size: 14px; color: var(--text); margin-left: 10px; word-break: break-word; }
+  .mem-meta {
+    display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap;
+    font-size: 12px; color: var(--text-dim);
+  }
+  .mem-meta-item { white-space: nowrap; }
+  .mem-detail {
+    margin-top: 10px; padding: 12px 14px;
+    background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px;
+    font-size: 13px; color: var(--text); white-space: pre-wrap;
+    max-height: 400px; overflow-y: auto; line-height: 1.6;
+  }
+  /* 注册密码强度提示 */
+  .pw-strength { margin-top: -6px; margin-bottom: 4px; }
+  .pw-bar-wrap { height: 5px; background: var(--bg-soft); border-radius: 3px; overflow: hidden; }
+  .pw-bar { height: 100%; transition: width .15s, background .15s; border-radius: 3px; }
+  .pw-str-text { font-size: 12px; margin-top: 4px; }
+  .pw-err { color: #ef4444; }
+  .pw-ok { color: #22c55e; }
 </style>
 </head>
 <body>
-  <!-- Vue 挂载点：顶部导航 + 主区（5 个视图） + 全局弹层 -->
+  <!-- Vue 固定挂载根：里面 v-if/v-else 切换登录页 vs 主应用 -->
   <div id="app">
-    <app-navbar @nav="onNav"></app-navbar>
-    <div id="main">
-      <chat-view v-show="store.view === 'chat'"></chat-view>
-      <kb-view ref="kbView" v-show="store.view === 'kb'"></kb-view>
-      <dashboard-view ref="dashView" v-show="store.view === 'dashboard'"></dashboard-view>
-      <memory-view ref="memView" v-show="store.view === 'memory'"></memory-view>
-      <settings-view ref="settingsView" v-show="store.view === 'settings'"></settings-view>
+    <!-- 未登录：登录/注册页 -->
+    <div v-if="!store.auth.loggedIn" id="login-wrap">
+      <div id="login-card">
+        <div class="login-logo">🤖</div>
+        <h1 class="login-title">RAG AI 客服</h1>
+        <p class="login-sub">知识库驱动的智能问答系统</p>
+
+        <!-- 登录表单 -->
+        <div v-if="!store.auth.showReg" class="login-form">
+          <input v-model="store.auth.loginForm.username" placeholder="用户名" @keyup.enter="store.auth.login()" />
+          <input v-model="store.auth.loginForm.password" type="password" placeholder="密码" @keyup.enter="store.auth.login()" />
+          <div v-if="store.auth.loginError" class="login-error">{{ store.auth.loginError }}</div>
+          <button class="login-btn" @click="store.auth.login()">登 录</button>
+          <div class="login-switch">
+            <span>没有账号？</span><a @click="store.auth.showReg = true">立即注册</a>
+          </div>
+        </div>
+
+        <!-- 注册表单 -->
+        <div v-else class="login-form">
+          <input v-model="store.auth.regForm.username" placeholder="用户名" @keyup.enter="store.auth.register()" />
+          <input v-model="store.auth.regForm.password" type="password" placeholder="密码（至少 8 位，含字母+数字）"
+                 @input="store.auth.checkRegPassword" @keyup.enter="store.auth.register()" />
+          <!-- 密码强度条 -->
+          <div v-if="store.auth.regStrength" class="pw-strength">
+            <div class="pw-bar-wrap">
+              <div class="pw-bar"
+                   :style="{ width: Math.min(100, (store.auth.regStrength.score || 0) * 20) + '%',
+                            background: (store.auth.regStrength.score || 0) >= 4 ? '#22c55e' : (store.auth.regStrength.score || 0) >= 2 ? '#eab308' : '#ef4444' }"></div>
+            </div>
+            <div class="pw-str-text">
+              <span v-if="store.auth.regStrength.error" class="pw-err">❌ {{ store.auth.regStrength.error }}</span>
+              <span v-else class="pw-ok">✔ {{ store.auth.regStrength.label || '符合要求' }}（强度 {{ store.auth.regStrength.score }}/5）</span>
+            </div>
+          </div>
+          <div v-if="store.auth.regError" class="login-error">{{ store.auth.regError }}</div>
+          <button class="login-btn" @click="store.auth.register()">注 册</button>
+          <div class="login-switch">
+            <span>已有账号？</span><a @click="store.auth.showReg = false">返回登录</a>
+          </div>
+        </div>
+
+        <div class="login-tip">默认账号：admin / admin123 · user / user123</div>
+      </div>
     </div>
-    <confirm-modal></confirm-modal>
-    <toast-box></toast-box>
+
+    <!-- 已登录：主应用 -->
+    <div v-else id="app-main">
+      <app-navbar @nav="onNav"></app-navbar>
+      <div id="main">
+        <chat-view v-show="store.view === 'chat'"></chat-view>
+        <kb-view ref="kbView" v-show="store.view === 'kb'"></kb-view>
+        <dashboard-view ref="dashView" v-show="store.view === 'dashboard'"></dashboard-view>
+        <memory-view ref="memView" v-show="store.view === 'memory'"></memory-view>
+        <agent-view ref="agentView" v-show="store.view === 'agent'"></agent-view>
+        <settings-view ref="settingsView" v-show="store.view === 'settings'"></settings-view>
+        <audit-view ref="auditView" v-show="store.view === 'audit'"></audit-view>
+      </div>
+      <confirm-modal></confirm-modal>
+      <password-modal></password-modal>
+      <toast-box></toast-box>
+    </div>
+
+    <!-- 强制下线全屏模态：遮罩拦截点击 + 必须手动确认 -->
+    <div v-if="store.auth.kickedModal" id="kick-mask">
+      <div id="kick-box">
+        <div class="kick-icon">🚫</div>
+        <div class="kick-title">账号已被强制下线</div>
+        <div class="kick-desc">管理员已强制将该账号下线，当前会话已失效。<br/>请重新登录后继续使用。</div>
+        <button id="kick-back" @click="store.auth.kickedModal = false; store.auth.kicked = false;">重新登录</button>
+      </div>
+    </div>
   </div>
 
   <!-- ================= 组件模板 ================= -->
@@ -433,11 +1024,28 @@
     <div id="navbar">
       <div class="navbar-logo">🤖 RAG AI 客服</div>
       <div class="navbar-nav">
-        <button class="nav-item" v-for="n in navs" :key="n.key"
+        <button class="nav-item" v-for="n in visibleNavs" :key="n.key"
                 :class="{ active: store.view === n.key }"
-                @click="$emit('nav', n.key)">{{ n.label }}</button>
+                @click="$emit('nav', n.key)">
+          <span>{{ n.label }}</span>
+        </button>
       </div>
-      <div class="navbar-right"></div>
+      <div class="navbar-right">
+        <div class="user-menu" @click.stop>
+          <button class="user-trigger" @click="showMenu = !showMenu">
+            <span class="avatar">{{ store.auth.user?.username?.[0]?.toUpperCase() || 'U' }}</span>
+            <span class="uname">{{ store.auth.user?.username }}</span>
+            <span class="urole" :class="'role-' + store.auth.user?.role">{{ roleLabel }}</span>
+          </button>
+          <div v-if="showMenu" class="user-dropdown">
+            <div class="dropdown-item" @click="toggleTheme(); showMenu=false">
+              <span v-if="store.theme === 'dark'">☀️ 切换到明亮主题</span>
+              <span v-else>🌙 切换到深色主题</span>
+            </div>
+            <div class="dropdown-item" @click="store.auth.logout(); showMenu=false">🚪 退出登录</div>
+          </div>
+        </div>
+      </div>
     </div>
   </script>
 
@@ -458,6 +1066,16 @@
               <span class="title">{{ s.title }}</span>
               <span class="del" title="删除" @click.stop="store.deleteSession(s.id)">✕</span>
             </div>
+          </div>
+          <!-- 对话历史分页 -->
+          <div class="page-nav" v-if="store.sessTotal > 0" style="margin-top:8px;padding:6px 0;font-size:12px;">
+            <span>共 {{ store.sessTotal }} 条</span>
+            <button class="page-btn" :disabled="store.sessPage <= 1" @click="store.gotoSessPage(store.sessPage - 1)">‹</button>
+            <span class="dim">{{ store.sessPage }} / {{ store.sessPages }}</span>
+            <button class="page-btn" :disabled="store.sessPage >= store.sessPages" @click="store.gotoSessPage(store.sessPage + 1)">›</button>
+            <select :value="store.sessPageSize" @change="store.changeSessPageSize(parseInt($event.target.value))" style="font-size:11px;">
+              <option :value="5">5</option><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option>
+            </select>
           </div>
         </div>
         <!-- 右侧：对话主区 -->
@@ -484,40 +1102,29 @@
                 <img v-for="(img, j) in m.images" :key="j" :src="'data:image/jpeg;base64,' + img"
                      @click="previewImg = img" title="点击放大预览" style="cursor:zoom-in;">
               </div>
-              <span class="content"><span v-if="m.content === null" class="typing"><span></span><span></span><span></span></span><template v-else>{{ m.content }}</template></span>
+              <span v-if="m.content === null" class="typing"><span></span><span></span><span></span></span>
+              <span v-else class="content" v-html="renderContent(m.content, m.sources)"></span>
               <div v-if="m.stage && m.content === null" class="stage-tip">
                 {{ m.stage.content }}<span v-if="m.stage.elapsed_ms" class="stage-time">({{ (m.stage.elapsed_ms/1000).toFixed(1) }}s)</span>
               </div>
-              <!-- 相关图片（RAG 召回命中的带图 chunk）——内联在答案和参考来源之间 -->
-              <div v-if="m.sources && m.sources.some(s => s.image)" class="ans-images">
-                <div class="ans-images-title">📎 相关图片</div>
-                <div class="ans-images-grid">
-                  <div v-for="(s, si) in m.sources.filter(s => s.image)" :key="'ai-'+si" class="ans-img-card">
-                    <img :src="s.image.split(';')[0]" class="ans-img"
-                         @click="previewSrcImg(s.image.split(';')[0])">
-                    <div class="ans-img-footer">
-                      <span class="ans-img-src">📄 {{ s.doc }}</span>
-                      <span v-if="s.score" class="ans-img-score">{{ Math.round(s.score*100) }}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div v-if="m.sources && m.sources.length" class="sources">
-                参考来源:
-                <span v-for="(s, si) in m.sources" :key="si" class="src-chip"
-                      :title="`得分 ${s.score}，点击定位到分块`" @click="jumpToSource(s)">
-                  {{ s.has_image ? '🖼️' : '📄' }} {{ s.doc }}<i>{{ s.score }}</i>
-                </span>
-              </div>
               <div v-if="m.totalMs" class="msg-time">
                 ⏱ 总耗时 {{ (m.totalMs/1000).toFixed(1) }}s
-                <span v-if="m.traceId" class="trace-link" @click="viewTrace(m.traceId)">查看链路 →</span>
               </div>
               <div class="msg-actions" v-if="m.role === 'assistant'">
                 <button class="ma-btn" @click="copyMsg(m)">📋 复制</button>
                 <button class="ma-btn" @click="regen(m)">🔄 重新生成</button>
                 <button class="ma-btn" @click="feedback(1)">👍</button>
                 <button class="ma-btn" @click="feedback(-1)">👎</button>
+              </div>
+              <!-- 转人工建议：知识库未命中时显示 -->
+              <div class="handoff-suggest" v-if="m.handoffSuggest && m.role === 'assistant'">
+                <div class="hs-message">{{ m.handoffMessage }}</div>
+                <div class="hs-actions">
+                  <button class="hs-btn hs-confirm" :disabled="m.handoffLoading" @click="confirmHandoff(m)">
+                    {{ m.handoffLoading ? '处理中…' : '✅ 同意转人工' }}
+                  </button>
+                  <button class="hs-btn hs-decline" @click="declineHandoff(m)">❌ 不用了</button>
+                </div>
               </div>
               <div class="sugg-follow" v-if="m.role === 'assistant' && m.content && i === store.messages.length - 1 && !sending">
                 <span class="sugg-follow-label">继续问：</span>
@@ -740,7 +1347,34 @@
                 <div id="chunk-list">
                   <div v-if="chunksLoading" style="color:var(--text-sub);font-size:14px;">加载中...</div>
                   <div v-else-if="chunksError" style="color:#ef4444">加载失败: {{ chunksError }}</div>
-                  <chunk-card v-else v-for="ch in chunks" :key="ch.index" :chunk="ch" :doc-id="chunkDoc.id"></chunk-card>
+                  <template v-else-if="isParentChild">
+                    <!-- 父子分块：父块模块 + 子块列表 -->
+                    <div v-for="(g, gi) in groupedChunks" :key="g.parent_id" class="parent-chunk">
+                      <div class="pc-header">
+                        <span class="pc-title">📦 父块 #{{ gi + 1 }}</span>
+                        <span class="pc-meta">{{ g.parent_text?.length || 0 }} 字 · {{ g.children.length }} 个子块</span>
+                      </div>
+                      <div class="pc-parent-text">{{ g.parent_text }}</div>
+                      <div class="pc-children">
+                        <div class="pc-children-title">子块（用于向量检索命中）：</div>
+                        <chunk-card v-for="ch in g.children" :key="ch.index" :chunk="ch" :doc-id="chunkDoc.id" :child-index="ch.child_index"></chunk-card>
+                      </div>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <!-- 通用/普通切分：单层 flat 列表（用 flat-chunk class 避免继承父子块的"子块"前缀 CSS） -->
+                    <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">
+                      共 {{ flatChunks.length }} 个普通分块（单层，无父子）
+                    </div>
+                    <div v-for="(ch, idx) in flatChunks" :key="ch.index" class="flat-chunk">
+                      <div class="pc-header">
+                        <span class="pc-title">📄 分块 #{{ idx + 1 }}</span>
+                        <span class="pc-meta">{{ ch.text?.length || 0 }} 字</span>
+                        <span class="pc-flat-tag">普通切分</span>
+                      </div>
+                      <chunk-card :chunk="ch" :doc-id="chunkDoc.id"></chunk-card>
+                    </div>
+                  </template>
                 </div>
               </div>
 
@@ -774,6 +1408,17 @@
                   </table>
                   <div id="doc-empty" v-else>还没有文档，拖拽文件到上方区域开始构建知识库</div>
                 </div>
+                <!-- 文档列表分页 -->
+                <div class="page-nav" v-if="docTotal > 0" style="margin-top:10px;">
+                  <span>共 {{ docTotal }} 条</span>
+                  <button class="page-btn" :disabled="docPage <= 1" @click="gotoDocPage(docPage - 1)">‹</button>
+                  <span class="dim">{{ docPage }} / {{ docPages }}</span>
+                  <button class="page-btn" :disabled="docPage >= docPages" @click="gotoDocPage(docPage + 1)">›</button>
+                  <span class="dim">每页</span>
+                  <select :value="docPageSize" @change="changeDocPageSize(parseInt($event.target.value))">
+                    <option :value="5">5</option><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option>
+                  </select>
+                </div>
               </template>
             </div>
 
@@ -792,6 +1437,17 @@
                   <div class="ua-q"><b>Q:</b> {{ item.question }}<br><b>A:</b> {{ item.answer }}</div>
                   <span class="ua-del" @click="delFaq(item)">删除</span>
                 </div>
+              </div>
+              <!-- FAQ 分页 -->
+              <div class="page-nav" v-if="faqTotal > 0" style="margin-top:10px;">
+                <span>共 {{ faqTotal }} 条</span>
+                <button class="page-btn" :disabled="faqPage <= 1" @click="gotoFaqPage(faqPage - 1)">‹</button>
+                <span class="dim">{{ faqPage }} / {{ faqPages }}</span>
+                <button class="page-btn" :disabled="faqPage >= faqPages" @click="gotoFaqPage(faqPage + 1)">›</button>
+                <span class="dim">每页</span>
+                <select :value="faqPageSize" @change="changeFaqPageSize(parseInt($event.target.value))">
+                  <option :value="5">5</option><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option>
+                </select>
               </div>
             </div>
 
@@ -823,6 +1479,17 @@
                   </div>
                 </div>
               </div>
+              <!-- 意图规则分页 -->
+              <div class="page-nav" v-if="ruleTotal > 0" style="margin-top:10px;">
+                <span>共 {{ ruleTotal }} 条</span>
+                <button class="page-btn" :disabled="rulePage <= 1" @click="gotoRulePage(rulePage - 1)">‹</button>
+                <span class="dim">{{ rulePage }} / {{ rulePages }}</span>
+                <button class="page-btn" :disabled="rulePage >= rulePages" @click="gotoRulePage(rulePage + 1)">›</button>
+                <span class="dim">每页</span>
+                <select :value="rulePageSize" @change="changeRulePageSize(parseInt($event.target.value))">
+                  <option :value="5">5</option><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option>
+                </select>
+              </div>
             </div>
 
             <!-- 工单 -->
@@ -841,6 +1508,17 @@
                     <button class="btn-mini" @click="toggleTicket(t)">{{ t.status === 'done' ? '重开' : '标记处理' }}</button>
                   </div>
                 </div>
+              </div>
+              <!-- 工单分页 -->
+              <div class="page-nav" v-if="tkTotal > 0" style="margin-top:10px;">
+                <span>共 {{ tkTotal }} 条</span>
+                <button class="page-btn" :disabled="tkPage <= 1" @click="gotoTkPage(tkPage - 1)">‹</button>
+                <span class="dim">{{ tkPage }} / {{ tkPages }}</span>
+                <button class="page-btn" :disabled="tkPage >= tkPages" @click="gotoTkPage(tkPage + 1)">›</button>
+                <span class="dim">每页</span>
+                <select :value="tkPageSize" @change="changeTkPageSize(parseInt($event.target.value))">
+                  <option :value="5">5</option><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option>
+                </select>
               </div>
             </div>
 
@@ -861,6 +1539,17 @@
                   </div>
                 </div>
               </div>
+              <!-- 转人工分页 -->
+              <div class="page-nav" v-if="hoTotal > 0" style="margin-top:10px;">
+                <span>共 {{ hoTotal }} 条</span>
+                <button class="page-btn" :disabled="hoPage <= 1" @click="gotoHoPage(hoPage - 1)">‹</button>
+                <span class="dim">{{ hoPage }} / {{ hoPages }}</span>
+                <button class="page-btn" :disabled="hoPage >= hoPages" @click="gotoHoPage(hoPage + 1)">›</button>
+                <span class="dim">每页</span>
+                <select :value="hoPageSize" @change="changeHoPageSize(parseInt($event.target.value))">
+                  <option :value="5">5</option><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option>
+                </select>
+              </div>
             </div>
 
             <!-- 未命中问题 -->
@@ -874,6 +1563,17 @@
                   <span class="ua-time">{{ item.created }}</span>
                   <span class="ua-del" @click="delUnanswered(item)">删除</span>
                 </div>
+              </div>
+              <!-- 未命中分页 -->
+              <div class="page-nav" v-if="unTotal > 0" style="margin-top:10px;">
+                <span>共 {{ unTotal }} 条</span>
+                <button class="page-btn" :disabled="unPage <= 1" @click="gotoUnPage(unPage - 1)">‹</button>
+                <span class="dim">{{ unPage }} / {{ unPages }}</span>
+                <button class="page-btn" :disabled="unPage >= unPages" @click="gotoUnPage(unPage + 1)">›</button>
+                <span class="dim">每页</span>
+                <select :value="unPageSize" @change="changeUnPageSize(parseInt($event.target.value))">
+                  <option :value="5">5</option><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option>
+                </select>
               </div>
             </div>
 
@@ -934,9 +1634,12 @@
 
   <!-- 分块卡片（编辑/保存/取消） -->
   <script type="text/x-template" id="tpl-chunk-card">
-    <div class="chunk-card" :class="{ editing: editing }">
+    <div class="chunk-card" :class="{ editing: editing }" :data-child-index="childIndex">
       <div class="ch-head">
-        <span class="ch-label">分块 #{{ chunk.index + 1 }}</span>
+        <span class="ch-label">
+          <template v-if="childIndex">子块 {{ childIndex }}</template>
+          <template v-else>分块 #{{ chunk.index + 1 }}</template>
+        </span>
         <div class="ch-actions">
           <button class="ch-edit" @click="startEdit">编辑</button>
           <button class="ch-save" :disabled="saving" @click="save">{{ saving ? '保存中...' : '保存' }}</button>
@@ -1020,16 +1723,151 @@
           </select>
         </div>
         <div class="field">
-          <label>分段最大长度 <span class="range-val">{{ chunkSize }}</span> 字符</label>
-          <input type="range" min="100" max="1500" step="50" v-model="chunkSize">
+          <label>分块模式 <span style="color:var(--text-dim);font-weight:normal;">（二选一）</span></label>
+          <div style="display:flex;gap:12px;margin-top:8px;">
+            <!-- ===== ① 通用分段 ===== -->
+            <div @click="chunkMode = 'general'"
+                 :style="['chunk-card', chunkMode === 'general' ? 'chunk-card-active' : '']">
+              <div class="chunk-card-head">
+                <input type="radio" :name="'chunk-mode-'+uid" :value="'general'" v-model="chunkMode">
+                <span class="chunk-card-icon">📄</span>
+                <span class="chunk-card-title">通用分段</span>
+              </div>
+              <div class="chunk-card-desc">简单按标识符或长度切单层，检索和生成都用同一块</div>
+              <template v-if="chunkMode === 'general'">
+                <div class="chunk-card-param">
+                  <label>分段标识符</label>
+                  <input type="text" v-model="gSeparator" placeholder="例如 \\n\\n 或 --- （留空=按空行/句号自动切）">
+                </div>
+                <div class="chunk-card-param">
+                  <label>分段最大长度</label>
+                  <input type="range" min="100" max="1500" step="50" v-model="gMaxLen">
+                  <span class="range-val">{{ gMaxLen }}</span>
+                </div>
+                <div class="chunk-card-param">
+                  <label>分段重叠长度</label>
+                  <input type="range" min="0" max="200" step="10" v-model="gOverlap">
+                  <span class="range-val">{{ gOverlap }}</span>
+                </div>
+              </template>
+            </div>
+
+            <!-- ===== ② 父子分段 ===== -->
+            <div @click="chunkMode = 'parent_child'"
+                 :style="['chunk-card', chunkMode === 'parent_child' ? 'chunk-card-active' : '']">
+              <div class="chunk-card-head">
+                <input type="radio" :name="'chunk-mode-'+uid" :value="'parent_child'" v-model="chunkMode">
+                <span class="chunk-card-icon">🗂️</span>
+                <span class="chunk-card-title">父子分段</span>
+                <span style="font-size:11px;color:var(--accent);margin-left:auto;">推荐</span>
+              </div>
+              <div class="chunk-card-desc">子块做向量检索 → 命中后取父块喂模型，精度 + 上下文兼得</div>
+              <template v-if="chunkMode === 'parent_child'">
+                <!-- 父块策略：段落模式 vs 全文模式 -->
+                <div class="chunk-card-param">
+                  <label>父块用作上下文：</label>
+                  <div style="display:flex;gap:16px;margin-top:6px;">
+                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+                      <input type="radio" :name="'parent-strat-'+uid" value="paragraph" v-model="parentStrategy">
+                      段落模式
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
+                      <input type="radio" :name="'parent-strat-'+uid" value="document" v-model="parentStrategy">
+                      全文模式（整篇 = 1 个父块）
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 段落模式才显示父块分隔符 + 父块最大长度 -->
+                <template v-if="parentStrategy === 'paragraph'">
+                  <div class="chunk-card-param">
+                    <label>父块分隔符</label>
+                    <input type="text" v-model="pSeparator" placeholder="例如 $$$ 或 =+=+ （留空=按空行/heading 自动切）">
+                  </div>
+                  <div class="chunk-card-param">
+                    <label>父块最大长度</label>
+                    <input type="range" min="500" max="5000" step="200" v-model="pMaxLen">
+                    <span class="range-val">{{ pMaxLen }}</span>
+                  </div>
+                </template>
+
+                <!-- 全文模式提示 -->
+                <template v-else>
+                  <div style="font-size:11px;color:var(--text-dim);background:var(--bg-soft);padding:6px 10px;border-radius:6px;">
+                    整篇文档 = 1 个父块（命中子块时把全文喂给模型），适合短文或章节完整的文档
+                  </div>
+                </template>
+
+                <div class="chunk-card-divider"></div>
+
+                <!-- 子块配置（两种父子模式都有） -->
+                <div class="chunk-card-param">
+                  <label>子块分隔符</label>
+                  <input type="text" v-model="cSeparator" placeholder="例如 $$ 或 . （留空=按句号/换行自动切）">
+                </div>
+                <div class="chunk-card-param">
+                  <label>子块最大长度</label>
+                  <input type="range" min="150" max="800" step="50" v-model="cMaxLen">
+                  <span class="range-val">{{ cMaxLen }}</span>
+                </div>
+
+                <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">
+                  父子模式 <b style="color:var(--accent);">无 overlap</b>（父块兜底了，overlap 是通用分段才需要的）
+                </div>
+              </template>
+            </div>
+          </div>
         </div>
+
+        <!-- ===== 文本预处理规则（Dify 风格 toggle switches）===== -->
         <div class="field">
-          <label>分段重叠长度 <span class="range-val">{{ chunkOverlap }}</span> 字符</label>
-          <input type="range" min="0" max="200" step="10" v-model="chunkOverlap">
+          <label>文本预处理规则 <span style="color:var(--text-dim);font-weight:normal;">（入库前自动清理脏数据）</span></label>
+          <div class="preprocess-grid">
+            <label class="pp-item">
+              <input type="checkbox" v-model="ppCleanWhitespace">
+              <span class="pp-switch"></span>
+              <span class="pp-text">
+                <b>清理多余空白</b>
+                <small>连续空行→2个，行尾空白清理，零宽字符</small>
+              </span>
+            </label>
+            <label class="pp-item">
+              <input type="checkbox" v-model="ppStripHtml">
+              <span class="pp-switch"></span>
+              <span class="pp-text">
+                <b>去除 HTML 标签</b>
+                <small>script/style 块 + 所有标签 → 纯文本</small>
+              </span>
+            </label>
+            <label class="pp-item">
+              <input type="checkbox" v-model="ppNormalizeSpaces">
+              <span class="pp-switch"></span>
+              <span class="pp-text">
+                <b>合并连续空格</b>
+                <small>多空格/制表符→单空格（纯中文跳过）</small>
+              </span>
+            </label>
+            <label class="pp-item">
+              <input type="checkbox" v-model="ppStripUrls">
+              <span class="pp-switch"></span>
+              <span class="pp-text">
+                <b>清理长 URL</b>
+                <small>http(s):// 开头的链接移除（默认关）</small>
+              </span>
+            </label>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:#94a3b8;">
-          <input type="checkbox" id="chunk-mode-pc" v-model="parentChild" style="width:16px;height:16px;cursor:pointer;">
-          <label for="chunk-mode-pc" style="cursor:pointer;">父子分段（子块做检索、命中后取父块喂模型，保留更完整上下文）</label>
+
+        <div class="field">
+          <label>向量模型 <span style="color:var(--text-dim);font-weight:normal;">（文本向量化，默认 bge-m3）</span></label>
+          <select v-model="embedModel" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+            <option v-for="m in embedModels" :key="m.name" :value="m.name">
+              {{ m.name }}
+              <span v-if="m.dim">· {{ m.dim }}维</span>
+              <span v-if="m.default" style="color:var(--accent);">（默认）</span>
+            </option>
+          </select>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">不同 embedding 模型维度可能不同，同一知识库内需保持一致</div>
         </div>
         <div style="font-size:12px;color:var(--text-dim);">较大的分段保留更多上下文但检索更粗略；重叠可缓解分段边界的语义割裂。</div>
         <div class="modal-actions">
@@ -1059,6 +1897,138 @@
             <div class="st-actions">
               <button class="btn-ghost" @click="resetDefaults">↺ 重置默认</button>
               <button class="btn-primary" :disabled="saving" @click="save">{{ saving ? '保存中...' : '保存设置' }}</button>
+            </div>
+          </div>
+
+          <!-- LLM 模型 -->
+          <div v-show="setTab === 'llm'">
+            <div class="panel">
+              <div class="form-block">
+                <div class="fb-label">🤖 选择大模型 Provider
+                  <span class="fb-tag">{{ providerLabels[llmProvider] || llmProvider }}</span>
+                </div>
+                <select class="fb-input" v-model="llmProvider">
+                  <option v-for="p in providerOptions" :key="p.key" :value="p.key">
+                    {{ p.label }} — {{ p.desc }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Ollama 本地配置 -->
+              <div class="form-block" v-if="llmProvider === 'ollama'">
+                <div class="fb-label">Ollama 服务地址
+                  <span class="fb-tag">{{ ollamaBase ? '已配置' : '默认' }}</span>
+                </div>
+                <input class="fb-input" v-model="ollamaBase" placeholder="http://localhost:11434" />
+                <div class="fb-desc">本地部署，隐私友好，零费用。保存后立即热更新。</div>
+              </div>
+
+              <!-- 云端 API 配置 -->
+              <div class="form-block" v-else>
+                <div class="fb-label">🔑 API Key <span class="fb-tag">密码保护</span></div>
+                <input class="fb-input" v-model="llmApiKey" type="password"
+                       :placeholder="'输入 ' + providerLabels[llmProvider] + ' 的 API Key'" />
+                <div class="fb-desc">API Key 仅存储在本地 settings.json，后端只读，前端不可见明文。</div>
+              </div>
+
+              <div class="form-block" v-if="llmProvider !== 'ollama'">
+                <div class="fb-label">🌐 API Base URL</div>
+                <input class="fb-input" v-model="llmBase"
+                       :placeholder="providerBasePlaceholders[llmProvider]" />
+                <div class="fb-dim" style="font-size:11px;margin-top:4px;">
+                  <span v-if="llmProvider === 'openai_compat'">
+                    DeepSeek: <code>https://api.deepseek.com/v1</code>；MiniMax: <code>https://api.minimax.chat/v1</code>；
+                    Kimi: <code>https://api.moonshot.cn/v1</code>；智谱: <code>https://open.bigmodel.cn/api/paas/v4</code>
+                  </span>
+                  <span v-else-if="llmProvider === 'baidu_ernie'">百度文心的 Base URL 已固定，此处保持默认即可</span>
+                  <span v-else-if="llmProvider === 'aliyun_dashscope'">阿里通义的 API 端点已固定，此处保持默认即可</span>
+                </div>
+              </div>
+
+              <div class="form-block" v-if="llmProvider !== 'ollama'">
+                <div class="fb-label">🌡️ 温度 Temperature <span class="fb-tag">0~2</span></div>
+                <input class="fb-input" type="number" step="0.1" min="0" max="2"
+                       v-model="llmTemperature" />
+                <div class="fb-desc">值越高回复越有创意，值越低越稳定可预测。客服场景建议 0.3 ~ 0.7。</div>
+              </div>
+
+              <div class="form-row">
+                <div class="fr-info">
+                  <div class="fr-name">🧪 连通性测试</div>
+                  <div class="fr-desc">不保存设置，直接调一次当前 Provider 跑一个最小请求，检查 URL 可达 / API Key 有效 / 能正常对话。</div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <button v-if="llmProvider === 'ollama'" class="btn-secondary" style="padding:6px 14px;font-size:13px;" @click="reloadModels">🔄 刷新模型</button>
+                  <button class="btn-primary" style="padding:6px 14px;font-size:13px;"
+                          :disabled="testing" @click="testLLM">
+                    {{ testing ? '测试中…' : '🧪 测试当前模型' }}
+                  </button>
+                </div>
+              </div>
+              <div v-if="testResult" class="llm-test-result"
+                   :class="testResult.ok ? 'llm-ok' : 'llm-fail'">
+                <div class="llm-test-head">
+                  <span v-if="testResult.ok">✅ 连通成功</span>
+                  <span v-else>❌ 连通失败（{{ testResult.stage || 'unknown' }}）</span>
+                  <span class="dim" style="margin-left:auto;">{{ testResult.message || '' }}</span>
+                </div>
+                <div v-if="testResult.sample" class="llm-test-sample">「{{ testResult.sample }}」</div>
+                <div v-if="testResult.installed && testResult.installed.length" class="dim" style="margin-top:6px;">
+                  已安装模型：{{ testResult.installed.join(', ') }}
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="fb-label">模型选择 <span class="fb-tag">从 Ollama 已安装列表中选</span></div>
+              <div v-if="!availableModels.length" class="dim" style="margin-bottom:10px;">
+                模型列表为空（可能 Ollama 未启动）。可手动输入模型名，保存后重启 Ollama 执行 <code>ollama pull 模型名</code>。
+              </div>
+              <div class="llm-model-grid">
+                <div class="llm-model-field">
+                  <label>💬 聊天模型（主对话）</label>
+                  <select v-model="chatModel" class="fb-input">
+                    <option v-if="!chatModel" value="">-- 未设置 --</option>
+                    <option v-for="m in availableModels" :key="m.name" :value="m.name">{{ m.name }}</option>
+                  </select>
+                  <input v-model="chatModel" class="fb-input" placeholder="或手动输入（如 qwen2.5:3b-instruct）" />
+                </div>
+                <div class="llm-model-field">
+                  <label>👁️ 视觉模型（图片问答）</label>
+                  <select v-model="visionModel" class="fb-input">
+                    <option v-if="!visionModel" value="">-- 未设置 --</option>
+                    <option v-for="m in availableModels" :key="m.name" :value="m.name">{{ m.name }}</option>
+                  </select>
+                  <input v-model="visionModel" class="fb-input" placeholder="如 qwen2.5vl:3b" />
+                </div>
+                <div class="llm-model-field">
+                  <label>📥 文本向量模型（bge-m3 类）</label>
+                  <select v-model="embedModel" class="fb-input">
+                    <option v-if="!embedModel" value="">-- 未设置 --</option>
+                    <option v-for="m in availableModels" :key="m.name" :value="m.name">{{ m.name }}</option>
+                  </select>
+                  <input v-model="embedModel" class="fb-input" placeholder="如 bge-m3:latest" />
+                </div>
+                <div class="llm-model-field">
+                  <label>🖼️ 图文统一向量模型</label>
+                  <select v-model="vlEmbedModel" class="fb-input">
+                    <option v-if="!vlEmbedModel" value="">-- 未设置 --</option>
+                    <option v-for="m in availableModels" :key="m.name" :value="m.name">{{ m.name }}</option>
+                  </select>
+                  <input v-model="vlEmbedModel" class="fb-input" placeholder="如 batiai/qwen3-vl-embed-2b:q6" />
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="fb-label">显存驻留时间 <span class="fb-tag">-1=常驻，0=用完立即释放，N=驻留 N 秒</span></div>
+              <div class="llm-keepalive-grid">
+                <div><label>文本向量</label><input type="number" v-model="keepAliveEmbed" /></div>
+                <div><label>图文向量</label><input type="number" v-model="keepAliveVlEmbed" /></div>
+                <div><label>聊天模型</label><input type="number" v-model="keepAliveChat" /></div>
+                <div><label>视觉模型</label><input type="number" v-model="keepAliveVision" /></div>
+              </div>
+              <div class="fb-desc">向量模型建议常驻（-1）以加速高频调用；聊天/视觉模型用完即放（0），多开时避免显存溢出。</div>
             </div>
           </div>
 
@@ -1260,31 +2230,9 @@
               </div>
             </div>
             <div class="chart-title">每日问答量</div>
-            <div class="panel" ref="barBox">
-              <svg v-if="trend" :viewBox="barViewBox" preserveAspectRatio="none" style="width:100%;height:240px;">
-                <g v-for="(p, i) in barBars" :key="'g'+i">
-                  <rect :x="p.x" :y="p.y" :width="p.w" :height="p.h" rx="3" :fill="barFill" />
-                  <text :x="p.x+p.w/2" :y="p.y-4" text-anchor="middle" font-size="11" fill="var(--text-sub)">{{ p.v }}</text>
-                  <text :x="p.x+p.w/2" :y="232" text-anchor="middle" font-size="10" fill="var(--text-dim)">{{ p.label }}</text>
-                </g>
-              </svg>
-              <div v-else class="empty-tip">加载中...</div>
-            </div>
+            <div class="panel"><div ref="echartsTrendBar" class="chart-echarts"></div></div>
             <div class="chart-title">每日反馈趋势（点赞 / 点踩）</div>
-            <div class="panel">
-              <svg v-if="trend" :viewBox="lineViewBox" preserveAspectRatio="none" style="width:100%;height:220px;">
-                <polyline :points="lineLikes" fill="none" stroke="#22c55e" stroke-width="2" />
-                <polyline :points="lineDislikes" fill="none" stroke="#ef4444" stroke-width="2" />
-                <g v-for="(p, i) in linePoints" :key="'lp'+i">
-                  <circle :cx="p.lx" :cy="p.ly" r="3" fill="#22c55e" />
-                  <circle :cx="p.dx" :cy="p.dy" r="3" fill="#ef4444" />
-                </g>
-              </svg>
-              <div style="display:flex;gap:16px;margin-top:8px;font-size:12px;color:var(--text-sub);">
-                <span><i style="display:inline-block;width:12px;height:3px;background:#22c55e;vertical-align:middle;margin-right:4px;"></i>点赞</span>
-                <span><i style="display:inline-block;width:12px;height:3px;background:#ef4444;vertical-align:middle;margin-right:4px;"></i>点踩</span>
-              </div>
-            </div>
+            <div class="panel"><div ref="echartsTrendLine" class="chart-echarts"></div></div>
           </div>
 
           <!-- 分布占比 -->
@@ -1293,53 +2241,15 @@
             <div class="dash-grid" style="grid-template-columns:1fr 1fr;">
               <div class="panel">
                 <div class="chart-title">反馈赞踩占比</div>
-                <div style="display:flex;align-items:center;gap:20px;">
-                  <svg viewBox="0 0 100 100" style="width:160px;height:160px;">
-                    <circle v-if="pieTotal===0" cx="50" cy="50" r="40" fill="none" stroke="var(--bg-soft)" stroke-width="14"/>
-                    <g v-else>
-                      <path :d="pieLikePath" fill="#22c55e"/>
-                      <path :d="pieDislikePath" fill="#ef4444"/>
-                    </g>
-                  </svg>
-                  <div style="font-size:13px;line-height:2;">
-                    <div><span style="color:#22c55e;">■</span> 点赞 {{ pieLikes }} ({{ pieLikePct }}%)</div>
-                    <div><span style="color:#ef4444;">■</span> 点踩 {{ pieDislikes }} ({{ pieDislikePct }}%)</div>
-                  </div>
-                </div>
+                <div ref="echartsPieLike" class="chart-echarts" style="height:220px;"></div>
               </div>
               <div class="panel">
                 <div class="chart-title">问答来源分布</div>
-                <div style="display:flex;align-items:center;gap:20px;">
-                  <svg viewBox="0 0 100 100" style="width:160px;height:160px;">
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--bg-soft)" stroke-width="14"/>
-                    <g v-if="donutTotal>0">
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#0ea5e9" stroke-width="14"
-                              :stroke-dasharray="donutFAQ + ' ' + (251.2-donutFAQ)" transform="rotate(-90 50 50)"/>
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#22c55e" stroke-width="14"
-                              :stroke-dasharray="donutKB + ' ' + (251.2-donutKB)" :stroke-dashoffset="-(donutFAQ)" transform="rotate(-90 50 50)"/>
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" stroke-width="14"
-                              :stroke-dasharray="donutNM + ' ' + (251.2-donutNM)" :stroke-dashoffset="-(donutFAQ+donutKB)" transform="rotate(-90 50 50)"/>
-                    </g>
-                  </svg>
-                  <div style="font-size:13px;line-height:2;">
-                    <div v-for="s in sourceData" :key="s.name">
-                      <span :style="{color:s.color}">■</span> {{ s.name }} {{ s.value }} ({{ s.pct }}%)
-                    </div>
-                  </div>
-                </div>
+                <div ref="echartsPieSource" class="chart-echarts" style="height:220px;"></div>
               </div>
             </div>
             <div class="chart-title">问答耗时分布（毫秒）</div>
-            <div class="panel">
-              <svg v-if="trend" :viewBox="latViewBox" preserveAspectRatio="none" style="width:100%;height:200px;">
-                <g v-for="(b, i) in latBars" :key="'lat'+i">
-                  <rect :x="b.x" :y="b.y" :width="b.w" :height="b.h" rx="3" :fill="b.color" />
-                  <text :x="b.x+b.w/2" :y="b.y-5" text-anchor="middle" font-size="11" fill="var(--text-sub)">{{ b.v }}ms</text>
-                  <text :x="b.x+b.w/2" :y="192" text-anchor="middle" font-size="11" fill="var(--text-h)">{{ b.label }}</text>
-                </g>
-              </svg>
-              <div v-else class="empty-tip">暂无耗时数据</div>
-            </div>
+            <div class="panel"><div ref="echartsLatency" class="chart-echarts"></div></div>
           </div>
 
           <!-- 反馈记录 -->
@@ -1376,6 +2286,20 @@
                   <button class="btn-mini" style="margin-left:auto;" title="将此问答加入评测集"
                           @click="addToEval(log)">＋ 加入评测集</button>
                 </div>
+              </div>
+              <!-- QA 日志分页 -->
+              <div class="page-nav" v-if="qaTotal > 0" style="margin-top:10px;">
+                <span>共 {{ qaTotal }} 条</span>
+                <button class="page-btn" :disabled="qaPage <= 1" @click="gotoQaPage(qaPage - 1)">‹</button>
+                <span class="dim">{{ qaPage }} / {{ qaPages }}</span>
+                <button class="page-btn" :disabled="qaPage >= qaPages" @click="gotoQaPage(qaPage + 1)">›</button>
+                <span class="dim">每页</span>
+                <select :value="qaPageSize" @change="changeQaPageSize(parseInt($event.target.value))">
+                  <option :value="5">5</option>
+                  <option :value="10">10</option>
+                  <option :value="20">20</option>
+                  <option :value="50">50</option>
+                </select>
               </div>
             </div>
           </div>
@@ -1421,6 +2345,17 @@
               </div>
               <div style="font-size:12px;color:var(--text-sub);">期望：{{ c.expected }}</div>
             </div>
+            <!-- 评测用例分页 -->
+            <div class="page-nav" v-if="evTotal > 0" style="margin-top:10px;">
+              <span>共 {{ evTotal }} 条</span>
+              <button class="page-btn" :disabled="evPage <= 1" @click="gotoEvPage(evPage - 1)">‹</button>
+              <span class="dim">{{ evPage }} / {{ evPages }}</span>
+              <button class="page-btn" :disabled="evPage >= evPages" @click="gotoEvPage(evPage + 1)">›</button>
+              <span class="dim">每页</span>
+              <select :value="evPageSize" @change="changeEvPageSize(parseInt($event.target.value))">
+                <option :value="5">5</option><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option>
+              </select>
+            </div>
           </div>
 
           <!-- 知识库健康度 -->
@@ -1460,6 +2395,108 @@
             </div>
           </div>
 
+          <!-- 系统健康检查 -->
+          <div v-show="dashTab === 'syshealth'">
+            <div class="dash-toolbar">
+              <span class="dash-section-title" style="margin:0;">💗 系统健康检查</span>
+              <button class="btn-primary" style="padding:6px 14px;font-size:13px;" @click="loadSysHealth">🔄 探针</button>
+              <span v-if="sysHealth && sysHealth.overall === 'ok'" class="tag tag-good">✅ 全部正常</span>
+              <span v-else-if="sysHealth && sysHealth.overall === 'degraded'" class="tag tag-open">⚠️ 部分降级</span>
+              <span v-else-if="sysHealth" class="tag tag-bad">❌ 有失败项</span>
+            </div>
+            <div v-if="!sysHealth" class="ua-empty-box">点击右上角「🔄 探针」开始检查</div>
+            <div v-else class="syshealth-grid">
+              <div v-for="(v, k) in {
+                database: '🗄️ PostgreSQL',
+                llm: '🧠 LLM (Ollama)',
+                vector_db: '📦 向量库 (Chroma)',
+                redis: '⚡ Redis 会话/限流',
+                overall: '🏆 综合'
+              }" :key="k" class="syshealth-card" :class="'sh-' + (sysHealth[k] && sysHealth[k].status || 'unknown')">
+                <div class="sh-title">{{ v }}</div>
+                <div class="sh-status">
+                  <span v-if="!sysHealth[k]">—</span>
+                  <template v-else-if="sysHealth[k].status === 'ok'">
+                    <span class="sh-icon">✅</span>
+                    <span class="sh-lat">{{ sysHealth[k].latency_ms }}ms</span>
+                  </template>
+                  <template v-else-if="sysHealth[k].status === 'skip'">
+                    <span class="sh-icon">⏭️</span>
+                    <span class="sh-err" v-if="sysHealth[k].error">{{ sysHealth[k].error }}</span>
+                    <span class="sh-err" v-else>未配置</span>
+                  </template>
+                  <template v-else>
+                    <span class="sh-icon">❌</span>
+                    <span class="sh-err">{{ sysHealth[k].error || sysHealth[k].latency_ms + 'ms' }}</span>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 成本追踪 -->
+          <div v-show="dashTab === 'cost'">
+            <div class="dash-toolbar">
+              <span class="dash-section-title" style="margin:0;">💰 成本追踪</span>
+              <select v-model="costDays" class="audit-search" style="width:120px;" @change="loadCost">
+                <option :value="7">最近 7 天</option>
+                <option :value="30">最近 30 天</option>
+                <option :value="90">最近 90 天</option>
+              </select>
+              <button class="btn-primary" style="padding:6px 14px;font-size:13px;" @click="loadCost">🔄 刷新</button>
+              <span v-if="costData && costData._scope === 'global'" class="tag tag-info">全局视角</span>
+              <span v-else-if="costData" class="tag tag-info">个人视角</span>
+              <button v-if="costData && costData._scope === 'global'" class="btn-secondary"
+                      style="padding:6px 14px;font-size:13px;margin-left:auto;"
+                      @click="exportCostCsv">⬇ 导出 CSV</button>
+            </div>
+            <div v-if="costData && costData.error" class="ua-empty-box" style="color:var(--err);">{{ costData.error }}</div>
+            <div v-else-if="!costData" class="ua-empty-box">无数据（需要 superadmin 或有历史调用）</div>
+            <div v-else>
+              <div class="cost-cards">
+                <div class="cost-card">
+                  <div class="cost-label">总调用次数</div>
+                  <div class="cost-val">{{ costData.total_calls != null ? costData.total_calls.toLocaleString() : '—' }}</div>
+                </div>
+                <div class="cost-card">
+                  <div class="cost-label">总 Tokens</div>
+                  <div class="cost-val">{{ (costData.total_tokens || 0).toLocaleString() }}</div>
+                </div>
+                <div class="cost-card">
+                  <div class="cost-label">估算金额（USD）</div>
+                  <div class="cost-val" :style="{ color: (costData.total_cost_usd || 0) > 5 ? '#ef4444' : 'var(--accent)' }">
+                    ${{ Number(costData.total_cost_usd || 0).toFixed(4) }}
+                  </div>
+                </div>
+                <div class="cost-card">
+                  <div class="cost-label">日均成本</div>
+                  <div class="cost-val">
+                    ${{ Number(((costData.total_cost_usd || 0) / Math.max(1, costData.days || 1))).toFixed(4) }}
+                  </div>
+                </div>
+              </div>
+              <div v-if="costData.by_model && costData.by_model.length" class="panel" style="padding:0;overflow:hidden;margin-top:14px;">
+                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                  <thead><tr style="background:var(--bg-soft);text-align:left;">
+                    <th style="padding:10px 14px;">模型</th>
+                    <th style="padding:10px 14px;">Token 总数</th>
+                    <th style="padding:10px 14px;">估算金额</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr v-for="m in costData.by_model" :key="m.model" style="border-top:1px solid var(--border);">
+                      <td style="padding:10px 14px;font-weight:600;font-family:Consolas,monospace;">{{ m.model }}</td>
+                      <td style="padding:10px 14px;">{{ (m.tokens || 0).toLocaleString() }}</td>
+                      <td style="padding:10px 14px;font-weight:600;">${{ Number(m.cost_usd || 0).toFixed(4) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div style="font-size:12px;color:var(--text-dim);margin-top:10px;">
+                💡 本地 Ollama 模型（qwen3 / llama / mistral）按 0 元计费；商业 API（gpt-4o / claude-3）按官网公开价估算。
+              </div>
+            </div>
+          </div>
+
           <!-- 链路追踪 -->
           <div v-show="dashTab === 'trace'">
             <div class="dash-toolbar">
@@ -1493,14 +2530,28 @@
                   </tr>
                 </tbody>
               </table>
+              <!-- 链路追踪分页 -->
+              <div class="page-nav" v-if="traceTotal > 0" style="padding:10px 14px;border-top:1px solid var(--border);">
+                <span>共 {{ traceTotal }} 条</span>
+                <button class="page-btn" :disabled="tracePage <= 1" @click="gotoTracePage(tracePage - 1)">‹</button>
+                <span class="dim">{{ tracePage }} / {{ tracePages }}</span>
+                <button class="page-btn" :disabled="tracePage >= tracePages" @click="gotoTracePage(tracePage + 1)">›</button>
+                <span class="dim">每页</span>
+                <select :value="tracePageSize" @change="changeTracePageSize(parseInt($event.target.value))">
+                  <option :value="5">5</option>
+                  <option :value="10">10</option>
+                  <option :value="20">20</option>
+                  <option :value="50">50</option>
+                </select>
+              </div>
             </div>
 
             <!-- 链路详情弹窗 -->
             <div v-if="traceDetail" class="modal-mask" @click.self="traceDetail = null">
-              <div class="modal" style="max-width:720px;">
-                <div class="modal-title">
-                  <span>🔗 链路详情</span>
-                  <button class="modal-close" @click="traceDetail = null">×</button>
+              <div class="modal" style="max-width:720px;" @click.stop>
+                <div class="modal-title" style="position:sticky;top:0;background:var(--card);z-index:1;padding-bottom:8px;border-bottom:1px solid var(--border);">
+                  <span style="font-size:16px;font-weight:700;">🔗 链路详情</span>
+                  <button class="modal-close" @click="traceDetail = null" style="cursor:pointer;font-size:20px;background:none;border:none;color:var(--text-sub);">×</button>
                 </div>
                 <div style="font-size:13px;color:var(--text-sub);margin-bottom:12px;">
                   trace_id: {{ traceDetail.trace_id }} · {{ traceDetail.created }} · 总耗时 {{ (traceDetail.total_ms/1000).toFixed(1) }}s
@@ -1515,10 +2566,11 @@
                 </div>
                 <div style="font-size:13px;font-weight:600;margin-bottom:8px;">执行环节</div>
                 <div v-for="(s, i) in traceDetail.stages" :key="i" class="trace-stage">
-                  <div class="trace-stage-header">
+                  <div class="trace-stage-header" style="cursor:pointer;" @click="s._open = !s._open">
                     <span class="trace-stage-icon">{{ s.status === 'pass' ? '✅' : s.status === 'hit' ? '🎯' : s.status === 'error' ? '❌' : '⏭️' }}</span>
                     <span class="trace-stage-name">{{ s.name }}</span>
                     <span class="trace-stage-time">{{ (s.elapsed_ms/1000).toFixed(1) }}s</span>
+                    <span v-if="s.detail" style="margin-left:auto;font-size:11px;color:var(--accent);" class="dim">{{ s._open ? '▾ 收起' : '▸ 展开详情' }}</span>
                   </div>
                   <div v-if="s.input" class="trace-stage-row">
                     <span class="trace-stage-label">输入</span>
@@ -1532,6 +2584,33 @@
                     <span class="trace-stage-label">错误</span>
                     <span class="trace-stage-val">{{ s.error }}</span>
                   </div>
+
+                  <!-- 🎯 知识库检索详情：完整 chunks + 分数 + 对应资料编号 -->
+                  <div v-if="s._open && s.detail && Array.isArray(s.detail)" class="trace-detail-block">
+                    <div class="tdb-title">📚 召回片段（{{ s.detail.length }} 条，LLM 实际收到的内容）</div>
+                    <div v-for="(c, j) in s.detail" :key="j" class="tdb-chunk">
+                      <div class="tdb-chunk-head">
+                        <span v-if="c.ref_num > 0" class="tdb-doc" style="background:#4f46e5;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;margin-right:4px;">资料{{ c.ref_num }}</span>
+                        <span class="tdb-doc">{{ c.doc || 'unknown' }}</span>
+                        <span class="tdb-score">score: {{ (c.score || 0).toFixed(3) }}</span>
+                        <span v-if="c.chunk_index !== undefined" class="tdb-idx">#{{ c.chunk_index }}</span>
+                      </div>
+                      <div v-if="c.chunk_text" class="tdb-chunk-text">{{ c.chunk_text }}</div>
+                    </div>
+                  </div>
+
+                  <!-- 💬 生成回答详情：完整 prompt messages -->
+                  <div v-if="s._open && s.detail && s.detail.prompt_messages" class="trace-detail-block">
+                    <div class="tdb-title">💡 扔给 LLM 的完整 Prompt（{{ s.detail.prompt_messages.length }} 条）</div>
+                    <div v-for="(m, j) in s.detail.prompt_messages" :key="j" class="tdb-msg" :class="'tdb-msg-' + m.role">
+                      <div class="tdb-msg-role">{{ m.role }}</div>
+                      <div class="tdb-msg-content">{{ m.content }}</div>
+                    </div>
+                    <div v-if="s.detail.final_answer" class="tdb-final-answer">
+                      <div class="tdb-title" style="margin-top:12px;">🎯 最终回答（{{ s.detail.answer_length }} 字，耗时 {{ (s.detail.elapsed_ms/1000).toFixed(1) }}s）</div>
+                      <div style="font-size:13px;white-space:pre-wrap;padding:8px;background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0;margin-top:6px;">{{ s.detail.final_answer }}</div>
+                    </div>
+                  </div>
                 </div>
                 <div v-if="traceDetail.answer" class="panel" style="padding:12px;margin-top:12px;">
                   <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">最终回答</div>
@@ -1544,19 +2623,543 @@
       </div>
     </div>
   </script>
+  <!-- Agent 管理面板 -->
+  <script type="text/x-template" id="tpl-agent-view">
+    <div id="agent-view" class="main-view" style="overflow-y:auto; padding:24px 28px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div>
+          <div style="font-size:20px;font-weight:700;color:var(--text-h);">🤖 Agent 管理</div>
+          <div style="font-size:13px;color:var(--text-sub);margin-top:4px;">
+            内置 Agent：FAQ 检索、工单、转人工。可自定义 HTTP 接口对接外部 Agent（GitHub / Dify / Coze / 自建 API 等）。
+          </div>
+        </div>
+        <button class="btn-primary" @click="openCreate">＋ 新建 Agent</button>
+      </div>
+
+      <div v-if="!agents.length" class="ua-empty-box">暂无 Agent</div>
+
+      <!-- Agent 卡片列表 -->
+      <div v-for="a in agents" :key="a.id" style="border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:12px;background:var(--bg-soft);">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:15px;font-weight:600;color:var(--text-h);">{{ a.name }}</span>
+              <span v-if="a.builtin" style="font-size:11px;padding:1px 6px;border-radius:4px;background:rgba(14,165,233,.15);color:var(--accent);">内置</span>
+              <span v-if="!a.enabled" style="font-size:11px;padding:1px 6px;border-radius:4px;background:rgba(239,68,68,.15);color:#ef4444;">已禁用</span>
+              <span v-if="a.endpoint && a.endpoint.startsWith('http')" style="font-size:11px;padding:1px 6px;border-radius:4px;background:rgba(34,197,94,.15);color:#22c55e;">外部接口</span>
+            </div>
+            <div style="font-size:13px;color:var(--text-sub);margin-top:4px;">{{ a.description || '（无描述）' }}</div>
+            <div v-if="a.endpoint" style="font-size:12px;color:var(--text-dim);margin-top:6px;font-family:monospace;">🔗 {{ a.endpoint }}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-sub);cursor:pointer;">
+              <input type="checkbox" :checked="a.enabled" @change="toggle(a, $event.target.checked)" style="width:14px;height:14px;cursor:pointer;">启用
+            </label>
+            <button class="btn-mini" @click="openEdit(a)">编辑</button>
+            <button class="btn-mini danger" v-if="!a.builtin" @click="del(a)">删除</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent 分页 -->
+      <div class="page-nav" v-if="agTotal > 0" style="margin-top:16px;">
+        <span>共 {{ agTotal }} 条</span>
+        <button class="page-btn" :disabled="agPage <= 1" @click="gotoAgPage(agPage - 1)">‹</button>
+        <span class="dim">{{ agPage }} / {{ agPages }}</span>
+        <button class="page-btn" :disabled="agPage >= agPages" @click="gotoAgPage(agPage + 1)">›</button>
+        <span class="dim">每页</span>
+        <select :value="agPageSize" @change="changeAgPageSize(parseInt($event.target.value))">
+          <option :value="5">5</option><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option>
+        </select>
+      </div>
+
+      <!-- 新建/编辑 Modal -->
+      <div v-if="editing" @click.self="editing = null" style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:999;">
+        <div style="background:var(--bg);border-radius:12px;padding:24px;width:560px;max-height:85vh;overflow-y:auto;border:1px solid var(--border);">
+          <div style="font-size:16px;font-weight:700;margin-bottom:16px;">{{ editing.id ? '编辑 Agent' : '新建 Agent' }}</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label style="font-size:13px;color:var(--text-sub);">Agent 名称 *</label>
+              <input v-model="form.name" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;box-sizing:border-box;" placeholder="例：天气查询">
+            </div>
+            <div>
+              <label style="font-size:13px;color:var(--text-sub);">功能描述（告诉大模型什么时候调用）</label>
+              <textarea v-model="form.description" rows="2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;resize:vertical;box-sizing:border-box;" placeholder="当用户问天气/气温时调用本 Agent..."></textarea>
+            </div>
+            <div>
+              <label style="font-size:13px;color:var(--text-sub);">HTTP 接口地址（http/https 开头，或留空表示内置 Agent）</label>
+              <input v-model="form.endpoint" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;font-family:monospace;box-sizing:border-box;" placeholder="https://api.example.com/v1/chat">
+            </div>
+            <div style="display:flex;gap:12px;">
+              <div style="flex:1;">
+                <label style="font-size:13px;color:var(--text-sub);">认证方式</label>
+                <select v-model="form.auth_type" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;">
+                  <option value="none">无认证</option>
+                  <option value="bearer">Bearer Token</option>
+                  <option value="apikey">API Key（Header）</option>
+                  <option value="basic">Basic Auth</option>
+                </select>
+              </div>
+              <div style="flex:1;">
+                <label style="font-size:13px;color:var(--text-sub);">凭证值</label>
+                <input v-model="form.auth_value" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;box-sizing:border-box;" :placeholder="authPlaceholder">
+              </div>
+            </div>
+            <div>
+              <label style="font-size:13px;color:var(--text-sub);">接口 Schema（JSON，告诉大模型如何构造请求）</label>
+              <textarea v-model="form.schema_json" rows="5" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace;resize:vertical;box-sizing:border-box;" placeholder='{"method":"POST","headers":{},"body":{"query":"{{question}}"}}'></textarea>
+              <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">变量占位符：{{question}}=用户问题，{{session_id}}=会话ID</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+            <button class="btn-mini" @click="editing = null">取消</button>
+            <button class="btn-primary" @click="save">保存</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </script>
   <script type="text/x-template" id="tpl-memory-view">
     <div id="memory-view" class="main-view" style="overflow-y:auto; padding:24px 28px;">
-      <div style="font-size:20px;font-weight:700;margin-bottom:20px;color:var(--text-h);">🧠 长期记忆</div>
-      <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">系统自动从对话中提取的用户偏好、事实和会话摘要，跨会话注入回答。</div>
-      <div id="memory-list">
-        <div v-if="!memories.length" class="ua-empty-box">暂无记忆，开始对话后系统会自动提取</div>
-        <div class="ua-item" v-for="m in memories" :key="m.id">
-          <div class="ua-q">
-            <span class="tag tag-open">{{ kindLabel(m.kind) }}</span>
-            <span style="font-size:14px;margin-left:8px;">{{ m.content }}</span><br>
-            <span style="font-size:12px;color:var(--text-dim);">{{ m.created }} · 会话 {{ m.session_id || '-' }}</span>
+      <div style="font-size:20px;font-weight:700;margin-bottom:8px;color:var(--text-h);">🧠 长期记忆</div>
+      <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">系统自动从对话中提取的用户偏好、事实和会话摘要，跨会话注入回答。当前显示所有用户的记忆（管理员视角）。</div>
+
+      <!-- 搜索 + 过滤栏 -->
+      <div class="mem-filter-bar">
+        <input class="mem-search" v-model="keyword" placeholder="🔍 搜索记忆内容..." @keyup.enter="load()" />
+        <select class="mem-kind-filter" v-model="kindFilter" @change="load()">
+          <option value="">全部类型</option>
+          <option value="summary">📝 会话摘要</option>
+          <option value="preference">❤️ 用户偏好</option>
+          <option value="fact">📌 事实信息</option>
+        </select>
+        <button class="mem-refresh" @click="load()">🔄</button>
+        <span class="mem-count">共 {{ memTotal }} 条</span>
+      </div>
+
+      <div v-if="!memories.length" class="ua-empty-box">
+        {{ keyword || kindFilter ? '没有找到匹配的记忆' : '暂无记忆，开始对话后系统会自动提取' }}
+      </div>
+
+      <div class="mem-card" v-for="m in memories" :key="m.id">
+        <!-- 第一行：标签 + 内容摘要 + 删除按钮 -->
+        <div class="mem-row-1">
+          <div class="mem-main" @click="toggle(m.id)">
+            <span class="tag" :class="'tag-' + m.kind">{{ kindLabel(m.kind) }}</span>
+            <span class="mem-summary">{{ summaryOf(m.content) }}</span>
           </div>
           <button class="btn-mini danger" @click="del(m)">删除</button>
+        </div>
+        <!-- 第二行：归属信息（用户名 + 会话标题 + 时间） -->
+        <div class="mem-meta">
+          <span class="mem-meta-item">👤 {{ m.username }}</span>
+          <span class="mem-meta-item">💬 {{ m.session_title }}</span>
+          <span class="mem-meta-item">⏱️ {{ m.created }}</span>
+        </div>
+        <!-- 展开的详情 -->
+        <div v-if="expanded === m.id" class="mem-detail">
+          {{ m.content }}
+        </div>
+      </div>
+
+      <!-- 长期记忆分页 -->
+      <div class="page-nav" v-if="memTotal > 0" style="margin-top:16px;">
+        <span>共 {{ memTotal }} 条</span>
+        <button class="page-btn" :disabled="memPage <= 1" @click="gotoMemPage(memPage - 1)">‹</button>
+        <span class="dim">{{ memPage }} / {{ memPages }}</span>
+        <button class="page-btn" :disabled="memPage >= memPages" @click="gotoMemPage(memPage + 1)">›</button>
+        <span class="dim">每页</span>
+        <select :value="memPageSize" @change="changeMemPageSize(parseInt($event.target.value))">
+          <option :value="5">5</option>
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+        </select>
+      </div>
+    </div>
+  </script>
+
+  <!-- 通用密码二次验证弹窗（force-logout / toggle-user 等敏感操作前弹） -->
+  <script type="text/x-template" id="tpl-password-modal">
+    <div class="pw-mask" v-if="visible" @click.self="cancel">
+      <div class="pw-box">
+        <div class="pw-title">🔐 操作需要密码确认</div>
+        <div class="pw-desc">{{ desc || '请输入您的当前密码以确认此敏感操作。' }}</div>
+        <input ref="pwInput" type="password" v-model="password" class="pw-input"
+               placeholder="当前密码" @keyup.enter="confirm" :disabled="loading">
+        <div class="pw-btns">
+          <button class="btn-ghost" @click="cancel" :disabled="loading">取消</button>
+          <button class="btn-primary" @click="confirm" :disabled="loading || !password">
+            {{ loading ? '验证中...' : '确认执行' }}
+          </button>
+        </div>
+        <div class="pw-error" v-if="error">{{ error }}</div>
+      </div>
+    </div>
+  </script>
+
+  <!-- 安全审计看板（superadmin only） -->
+  <script type="text/x-template" id="tpl-audit-view">
+    <div id="audit-view" class="main-view" style="overflow-y:auto;">
+      <div class="dash-page">
+        <!-- 左侧二级导航 -->
+        <div class="dash-subnav">
+          <div v-for="t in tabs" :class="['ds-item', { active: tab === t.key }]" @click="switchTab(t.key)">
+            <span>{{ t.icon }}</span><span>{{ t.label }}</span>
+          </div>
+          <div class="ds-foot"><div style="font-size:11px;color:var(--text-dim);">仅超级管理员可查看</div></div>
+        </div>
+        <!-- 右侧内容 -->
+        <div class="dash-content">
+          <div class="audit-content">
+        <!-- =========== 系统日志 =========== -->
+        <div v-show="tab === 'logs'" class="panel">
+          <div class="audit-toolbar">
+            <input v-model="logKeyword" @keyup.enter="loadLogs" placeholder="搜索日志内容..." class="audit-search">
+            <select v-model="logLevel" class="audit-select">
+              <option value="">全部级别</option>
+              <option value="ERROR">ERROR</option>
+              <option value="WARNING">WARNING</option>
+              <option value="INFO">INFO</option>
+              <option value="DEBUG">DEBUG</option>
+            </select>
+            <button class="btn-primary" @click="loadLogs">🔄 刷新</button>
+          </div>
+          <div v-if="!logs.length" class="audit-empty">暂无日志记录</div>
+          <pre class="log-box"><code v-for="(l, i) in logs" :key="i">{{ l.line }}</code></pre>
+          <div class="page-nav" v-if="logTotal > 0">
+            <span>共 {{ logTotal }} 条</span>
+            <button class="page-btn" :disabled="logPage <= 1" @click="gotoPage('logs', logPage - 1)">‹</button>
+            <template v-for="b in pageButtons('logs')" :key="b">
+              <span v-if="b === '…'" class="dim">…</span>
+              <button v-else class="page-btn" :class="{ active: b === logPage }" @click="gotoPage('logs', b)">{{ b }}</button>
+            </template>
+            <button class="page-btn" :disabled="logPage >= logPages" @click="gotoPage('logs', logPage + 1)">›</button>
+            <span class="dim">每页</span>
+            <select :value="logPageSize" @change="changePageSize('logs', parseInt($event.target.value))">
+              <option :value="5">5</option>
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- =========== 安全审计 =========== -->
+        <div v-show="tab === 'audit'" class="panel">
+          <div class="audit-toolbar">
+            <input v-model="auditKeyword" @keyup.enter="loadAudit" placeholder="搜索 action/detail/资源..." class="audit-search">
+            <input v-model="auditActor" @keyup.enter="loadAudit" placeholder="用户名筛选" class="audit-search" style="width:140px;">
+            <select v-model="auditAction" class="audit-select">
+              <option value="">全部动作</option>
+              <option v-for="a in actionFilterList" :key="a" :value="a">{{ a }}</option>
+            </select>
+            <button class="btn-primary" @click="loadAudit">🔄 刷新</button>
+            <button class="btn-secondary" @click="exportAudit('csv')">⬇ 导出 CSV</button>
+            <button class="btn-secondary" @click="exportAudit('json')">⬇ 导出 JSON</button>
+          </div>
+          <div v-if="!auditLogs.length" class="audit-empty">暂无审计记录</div>
+          <table class="audit-table" v-else>
+            <thead>
+              <tr>
+                <th>时间</th><th>动作</th><th>操作者</th><th>资源</th><th>IP</th><th>结果</th><th>详情</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="l in auditLogs" :key="l.id">
+                <td class="col-time">{{ l.time }}</td>
+                <td class="col-action"><code>{{ l.action }}</code></td>
+                <td>{{ l.actor_username }}</td>
+                <td>
+                  <span v-if="l.resource_type">{{ l.resource_type }}</span>
+                  <span v-if="l.resource_id" class="dim">#{{ l.resource_id }}</span>
+                </td>
+                <td class="dim">{{ l.ip }}</td>
+                <td>
+                  <span :class="['badge', 'badge-' + (l.result === 'success' ? 'ok' : l.result === 'fail' ? 'err' : 'warn')]">
+                    {{ l.result }}
+                  </span>
+                </td>
+                <td class="col-detail dim" :title="l.detail">{{ l.detail }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="page-nav" v-if="auditTotal > 0">
+            <span>共 {{ auditTotal }} 条</span>
+            <button class="page-btn" :disabled="auditPage <= 1" @click="gotoPage('audit', auditPage - 1)">‹</button>
+            <template v-for="b in pageButtons('audit')" :key="b">
+              <span v-if="b === '…'" class="dim">…</span>
+              <button v-else class="page-btn" :class="{ active: b === auditPage }" @click="gotoPage('audit', b)">{{ b }}</button>
+            </template>
+            <button class="page-btn" :disabled="auditPage >= auditPages" @click="gotoPage('audit', auditPage + 1)">›</button>
+            <span class="dim">每页</span>
+            <select :value="auditPageSize" @change="changePageSize('audit', parseInt($event.target.value))">
+              <option :value="5">5</option>
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- =========== 登录失败 =========== -->
+        <div v-show="tab === 'failures'" class="panel">
+          <div class="audit-toolbar">
+            <input v-model="failUsername" @keyup.enter="loadFailures" placeholder="用户名" class="audit-search" style="width:140px;">
+            <input v-model="failIp" @keyup.enter="loadFailures" placeholder="IP" class="audit-search" style="width:140px;">
+            <button class="btn-primary" @click="loadFailures">🔄 刷新</button>
+          </div>
+          <div v-if="!authFailures.length" class="audit-empty">暂无登录失败记录</div>
+          <table class="audit-table" v-else>
+            <thead><tr><th>时间</th><th>用户名</th><th>IP</th><th>User-Agent</th></tr></thead>
+            <tbody>
+              <tr v-for="f in authFailures" :key="f.id">
+                <td class="col-time">{{ f.time }}</td>
+                <td>{{ f.username }}</td>
+                <td class="dim">{{ f.ip }}</td>
+                <td class="dim">{{ f.user_agent }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="page-nav" v-if="failTotal > 0">
+            <span>共 {{ failTotal }} 条</span>
+            <button class="page-btn" :disabled="failPage <= 1" @click="gotoPage('failures', failPage - 1)">‹</button>
+            <template v-for="b in pageButtons('failures')" :key="b">
+              <span v-if="b === '…'" class="dim">…</span>
+              <button v-else class="page-btn" :class="{ active: b === failPage }" @click="gotoPage('failures', b)">{{ b }}</button>
+            </template>
+            <button class="page-btn" :disabled="failPage >= failPages" @click="gotoPage('failures', failPage + 1)">›</button>
+            <span class="dim">每页</span>
+            <select :value="failPageSize" @change="changePageSize('failures', parseInt($event.target.value))">
+              <option :value="5">5</option>
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- =========== 用户管理（含二次验证） =========== -->
+        <div v-show="tab === 'users'" class="panel">
+          <div class="audit-toolbar">
+            <div class="audit-title">👥 用户列表</div>
+            <button class="btn-secondary" @click="loadUsers">🔄 刷新</button>
+          </div>
+          <table class="audit-table">
+            <thead><tr>
+              <th>ID</th><th>用户名</th><th>角色</th><th>组织</th><th>部门</th><th>状态</th><th>锁定</th><th>创建时间</th><th>操作</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="u in users" :key="u.id">
+                <td>{{ u.id }}</td>
+                <td><b>{{ u.username }}</b></td>
+                <td><span :class="['badge', 'badge-role-' + u.role]" :title="u.role">{{ u.role_label || u.role }}</span></td>
+                <td class="dim">{{ u.org_name || '—' }}</td>
+                <td class="dim">{{ u.dept_name || '—' }}</td>
+                <td>
+                  <span :class="['badge', u.enabled ? 'badge-ok' : 'badge-err']">
+                    {{ u.enabled ? '启用' : '禁用' }}
+                  </span>
+                </td>
+                <td>
+                  <span v-if="u.locked" class="badge badge-err">🔒 锁定</span>
+                  <span v-else class="dim">—</span>
+                </td>
+                <td class="dim">{{ u.created_at }}</td>
+                <td class="col-actions">
+                  <button class="btn-small" @click="openAssign(u)">分配组织</button>
+                  <button class="btn-small" :disabled="u.role === 'superadmin' && !u.enabled"
+                          @click="toggleUser(u, !u.enabled)">
+                    {{ u.enabled ? '禁用' : '启用' }}
+                  </button>
+                  <button class="btn-small btn-danger" @click="forceLogout(u)" :disabled="u.role === 'superadmin'">
+                    强制下线
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="page-nav" v-if="userTotal > 0">
+            <span>共 {{ userTotal }} 条</span>
+            <button class="page-btn" :disabled="userPage <= 1" @click="gotoPage('users', userPage - 1)">‹</button>
+            <template v-for="b in pageButtons('users')" :key="b">
+              <span v-if="b === '…'" class="dim">…</span>
+              <button v-else class="page-btn" :class="{ active: b === userPage }" @click="gotoPage('users', b)">{{ b }}</button>
+            </template>
+            <button class="page-btn" :disabled="userPage >= userPages" @click="gotoPage('users', userPage + 1)">›</button>
+            <span class="dim">每页</span>
+            <select :value="userPageSize" @change="changePageSize('users', parseInt($event.target.value))">
+              <option :value="5">5</option>
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- =========== 组织架构 =========== -->
+        <div v-show="tab === 'orgs'" class="panel">
+          <div class="audit-toolbar">
+            <div class="audit-title">🏢 组织与部门</div>
+            <input v-model="newOrgName" placeholder="组织名称" class="audit-search" style="width:170px;">
+            <input v-model="newOrgCode" placeholder="编码（如 HQ）" class="audit-search" style="width:140px;">
+            <button class="btn-primary" @click="createOrg">＋ 新建组织</button>
+            <button class="btn-secondary" @click="loadOrgs">🔄 刷新</button>
+          </div>
+          <div class="split-wrap">
+            <div class="split-left">
+              <div v-for="o in orgs" :key="o.id"
+                   :class="['org-card', { active: curOrgId === o.id }]" @click="selectOrg(o.id)">
+                <div class="org-card-title">{{ o.name }}</div>
+                <div class="org-card-sub">
+                  <code>{{ o.code }}</code> · {{ o.dept_count }} 个部门
+                  <span v-if="!o.enabled" class="badge badge-err">已停用</span>
+                </div>
+                <div class="org-card-ops">
+                  <button class="btn-mini" @click.stop="renameOrg(o)">改名</button>
+                  <button class="btn-mini btn-danger" @click.stop="deleteOrg(o)">删除</button>
+                </div>
+              </div>
+              <div v-if="!orgs.length" class="audit-empty">暂无组织，请先新建</div>
+            </div>
+            <div class="split-right">
+              <div class="audit-toolbar">
+                <div class="audit-title">部门</div>
+                <input v-model="newDeptName" @keyup.enter="createDept" placeholder="部门名称"
+                       class="audit-search" style="width:160px;" :disabled="!curOrgId">
+                <button class="btn-primary" :disabled="!curOrgId" @click="createDept">＋ 新建部门</button>
+              </div>
+              <div v-if="!curOrgDepts.length" class="audit-empty">该组织下暂无部门</div>
+              <table class="audit-table" v-else>
+                <thead><tr><th>ID</th><th>部门名称</th><th>上级部门</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr v-for="d in curOrgDepts" :key="d.id">
+                    <td>{{ d.id }}</td>
+                    <td><b>{{ d.name }}</b></td>
+                    <td class="dim">{{ deptName(d.parent_id) }}</td>
+                    <td class="col-actions">
+                      <button class="btn-small" @click="renameDept(d)">改名</button>
+                      <button class="btn-small btn-danger" @click="deleteDept(d)">删除</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- =========== 角色权限 =========== -->
+        <div v-show="tab === 'roles'" class="panel">
+          <div class="audit-toolbar">
+            <div class="audit-title">🛡️ 角色与权限</div>
+            <input v-model="newRoleName" placeholder="角色标识（如 cs_lead）" class="audit-search" style="width:180px;">
+            <input v-model="newRoleLabel" placeholder="显示名（如 客服主管）" class="audit-search" style="width:180px;">
+            <button class="btn-primary" @click="createRole">＋ 新建角色</button>
+            <button class="btn-secondary" @click="loadRoles">🔄 刷新</button>
+          </div>
+          <div class="split-wrap">
+            <div class="split-left">
+              <div v-for="r in roles" :key="r.name"
+                   :class="['org-card', { active: curRole === r.name }]" @click="selectRole(r.name)">
+                <div class="org-card-title">
+                  {{ r.display_name }}
+                  <span v-if="r.builtin" class="badge badge-info" style="margin-left:6px;">内置</span>
+                </div>
+                <div class="org-card-sub">
+                  <code>{{ r.name }}</code> · {{ r.user_count }} 人 · 等级 {{ r.level }}
+                </div>
+              </div>
+              <div v-if="!roles.length" class="audit-empty">暂无角色</div>
+            </div>
+            <div class="split-right" v-if="curRole">
+              <div class="audit-toolbar" style="flex-wrap:wrap;gap:8px;">
+                <div class="audit-title">{{ curRoleData.display_name || curRole }}</div>
+                <input v-model="roleForm.display_name" placeholder="显示名" class="audit-search" style="width:140px;">
+                <input v-model.number="roleForm.level" type="number" placeholder="等级" class="audit-search" style="width:90px;">
+                <input v-model="roleForm.description" placeholder="描述" class="audit-search" style="width:200px;">
+                <button class="btn-primary" @click="saveRoleMeta">💾 保存角色</button>
+                <button class="btn-small btn-danger" :disabled="curRoleBuiltin" @click="removeRole">删除角色</button>
+              </div>
+              <div class="audit-toolbar">
+                <div class="audit-title" style="font-size:14px;">权限配置</div>
+                <button class="btn-secondary" @click="checkAllPerms(true)">全选</button>
+                <button class="btn-secondary" @click="checkAllPerms(false)">清空</button>
+                <button class="btn-primary" @click="saveRolePerms">💾 保存权限</button>
+                <span class="dim" style="font-size:12px;">已选 {{ curPerms.length }} / {{ permCatalog.length }}</span>
+              </div>
+              <div v-if="!permCatalog.length" class="audit-empty">权限清单加载中</div>
+              <div class="perm-grid">
+                <label v-for="p in permCatalog" :key="p.key" class="perm-item">
+                  <input type="checkbox" :value="p.key" v-model="curPerms">
+                  <span>{{ p.label }}</span>
+                  <code class="dim">{{ p.key }}</code>
+                </label>
+              </div>
+            </div>
+            <div class="split-right" v-else>
+              <div class="audit-empty">请选择左侧角色进行权限配置</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- =========== 异步任务 =========== -->
+        <div v-show="tab === 'tasks'" class="panel">
+          <div class="audit-toolbar">
+            <div class="audit-title">⚙️ 异步任务队列</div>
+            <select v-model="newTaskType" class="audit-search" style="width:220px;">
+              <option v-for="t in taskTypes" :key="t.key" :value="t.key">{{ t.label }}</option>
+            </select>
+            <button class="btn-primary" @click="submitAsync">＋ 提交任务</button>
+            <button class="btn-secondary" @click="loadAsyncTasks">🔄 刷新</button>
+            <span class="dim" style="font-size:12px;">后端 worker 并发数 = 4</span>
+          </div>
+          <div v-if="!asyncTasks.length" class="audit-empty">暂无历史任务。提交一个试试，比如「导出审计日志」。</div>
+          <table class="audit-table" v-else>
+            <thead><tr>
+              <th>ID</th><th>类型</th><th>状态</th><th>重试</th><th>创建时间</th><th>完成时间</th><th>错误</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="t in asyncTasks" :key="t.id">
+                <td>{{ t.id }}</td>
+                <td><code>{{ t.type }}</code></td>
+                <td>
+                  <span v-if="t.status === 'done'" class="badge badge-ok">✅ 完成</span>
+                  <span v-else-if="t.status === 'running'" class="badge badge-info">▶️ 执行中</span>
+                  <span v-else-if="t.status === 'failed'" class="badge badge-err">❌ 失败</span>
+                  <span v-else class="badge">⏳ 等待</span>
+                </td>
+                <td>{{ t.retry || 0 }}</td>
+                <td class="dim" style="font-size:12px;">{{ t.created_at }}</td>
+                <td class="dim" style="font-size:12px;">{{ t.finished_at || '—' }}</td>
+                <td class="dim" style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ t.error || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 分配组织/部门弹窗 -->
+        <div v-if="showAssign" class="assign-mask" @click.self="showAssign = false">
+          <div class="assign-box">
+            <div class="audit-title" style="margin-bottom:14px;">
+              分配组织 / 部门 — {{ assignUser && assignUser.username }}
+            </div>
+            <label class="assign-label">组织</label>
+            <select v-model="assignOrgId" class="audit-select" style="width:100%;margin-bottom:12px;">
+              <option :value="null">（未分配）</option>
+              <option v-for="o in orgs" :key="o.id" :value="o.id">{{ o.name }}</option>
+            </select>
+            <label class="assign-label">部门</label>
+            <select v-model="assignDeptId" class="audit-select" style="width:100%;">
+              <option :value="null">（未分配）</option>
+              <option v-for="d in assignDeptOptions" :key="d.id" :value="d.id">{{ d.name }}</option>
+            </select>
+            <div style="text-align:right;margin-top:18px;">
+              <button class="btn-small" @click="showAssign = false">取消</button>
+              <button class="btn-primary" style="margin-left:8px;" @click="saveAssign">保存</button>
+            </div>
+          </div>
+        </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1580,12 +3183,81 @@
     <div id="toast" :class="{ show: store.toastShow }">{{ store.toastText }}</div>
   </script>
 
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
   <script src="/static/vendor/vue.global.prod.js"></script>
   <script>
+  /* ==================== fetch 全局 patch：自动加 JWT + 401 拦截 + 强制下线弹窗 ==================== */
+  (function() {
+    const _origFetch = window.fetch;
+    window.__authToken = null;
+    window.__onAuthExpired = null;
+    window.__kickPollTimer = null;
+
+    // 启动强制下线轮询（每 30s 一次 /api/auth/me）
+    window.startKickPolling = function() {
+      window.stopKickPolling();
+      window.__kickPollTimer = setInterval(async () => {
+        if (!window.__authToken) return;
+        try {
+          const r = await _origFetch('/api/auth/me', {
+            headers: { 'Authorization': 'Bearer ' + window.__authToken }
+          });
+          if (r.status === 401) {
+            // 被踢了！触发全局回调（会弹模态）
+            window.__authToken = null;
+            if (window.__onAuthExpired) window.__onAuthExpired({ kicked: true });
+          }
+        } catch (e) { /* 网络错误忽略 */ }
+      }, 30000);  // 30 秒一次
+    };
+    window.stopKickPolling = function() {
+      if (window.__kickPollTimer) {
+        clearInterval(window.__kickPollTimer);
+        window.__kickPollTimer = null;
+      }
+    };
+
+    window.fetch = function(input, init) {
+      init = init || {};
+      if (window.__authToken) {
+        const hdrs = init.headers ? { ...init.headers } : {};
+        if (!(hdrs instanceof Headers)) {
+          hdrs['Authorization'] = 'Bearer ' + window.__authToken;
+          init.headers = hdrs;
+        } else if (!hdrs.has('Authorization')) {
+          hdrs.set('Authorization', 'Bearer ' + window.__authToken);
+          init.headers = hdrs;
+        }
+      }
+      return _origFetch.apply(this, [input, init]).then(async resp => {
+        if (resp.status === 401 && window.__authToken) {
+          const wasKicked = window.__authToken !== null;
+          window.__authToken = null;
+          if (window.__onAuthExpired) window.__onAuthExpired({ kicked: wasKicked });
+        }
+        return resp;
+      });
+    };
+  })();
+
   /* ================================================================
    * 系统设置默认值（与后端 core/settings.py DEFAULT_SETTINGS 保持一致）
    * ================================================================ */
   const DEFAULT_SETTINGS = {
+    // LLM Provider 默认值
+    llm_provider: "ollama",
+    llm_base: "",
+    llm_api_key: "",
+    llm_temperature: 0.7,
+    ollama_base: "http://localhost:11434",
+    chat_model: "qwen2.5:3b-instruct",
+    vision_model: "qwen2.5vl:3b",
+    embed_model: "bge-m3:latest",
+    vl_embed_model: "batiai/qwen3-vl-embed-2b:q6",
+    keep_alive_embed: -1,
+    keep_alive_vl_embed: -1,
+    keep_alive_chat: 0,
+    keep_alive_vision: 0,
     kb_prompt: "你是一名严格遵循资料的 AI 客服。\n必须严格遵守以下规则：\n1. 只能基于【知识库资料】中的内容回答用户问题，绝不使用你自己的知识；\n2. 答案必须逐条引用资料原文，不允许概括、推测或补充资料之外的信息；\n3. 如果资料中没有相关信息，只回答\"抱歉，当前资料中未提及该问题，请联系人工客服或补充资料\"；\n4. 不要在回答中提及\"知识库资料\"\"参考资料\"\"根据资料\"等字眼，直接给出答案；\n5. 回答简洁，不要有多余开场白或结尾语。\n\n【知识库资料】\n{context}",
     no_match_prompt: "你是一名 AI 客服。当前知识库中没有与用户问题相关的资料。\n你只能回复：\"抱歉，当前资料中未提及该问题，请联系人工客服或补充资料。\"\n禁止使用你自身的知识回答，不要编造任何信息。",
     direct_prompt: "你是一名专业、热情的 AI 客服助手。请直接、准确地回答用户的问题，回答简洁清晰，可分点说明。\n注意：用户已关闭知识库检索，请完全基于自身知识回答，不要引用历史对话中出现的任何知识库资料或参考来源内容。",
@@ -1605,6 +3277,118 @@
    * 全局响应式 Store：会话、消息、知识库列表、Toast、确认框
    * ================================================================ */
   const store = Vue.reactive({
+    /* ---- Auth 登录状态 ---- */
+    auth: {
+      token: null,
+      user: null,        // { id, username, role, enabled }
+      loggedIn: false,
+      loginForm: { username: '', password: '' },
+      regForm: { username: '', password: '' },
+      loginError: '',
+      regError: '',
+      showReg: false,
+      regStrength: null,  // { valid, error, score, label, tips }
+      // 强制下线弹窗状态
+      kicked: false,
+      kickedModal: false,
+      kickedModalTimer: null,
+      async login() {
+        this.loginError = '';
+        try {
+          const resp = await fetch('/api/auth/login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.loginForm),
+          });
+          const data = await resp.json();
+          if (!resp.ok) { this.loginError = data.detail || '登录失败'; return false; }
+          this.token = data.token;
+          this.user = { id: data.user_id, username: data.username, role: data.role };
+          this.loggedIn = true;
+          this.kicked = false;
+          this.kickedModal = false;
+          window.__authToken = data.token;
+          // 持久化到 localStorage —— 刷新不丢登录态
+          try {
+            localStorage.setItem('rag_token', data.token);
+            localStorage.setItem('rag_user', JSON.stringify(this.user));
+          } catch(e) {}
+          // 登录成功：立刻把 onAuthExpired 回调切到"被踢弹模态"模式
+          window.__onAuthExpired = (info) => {
+            this.token = null; this.user = null; this.loggedIn = false;
+            window.stopKickPolling();
+            try { localStorage.removeItem('rag_token'); localStorage.removeItem('rag_user'); } catch(e) {}
+            if (info && info.kicked) {
+              this.kicked = true; this.kickedModal = true;
+              if (this.kickedModalTimer) clearTimeout(this.kickedModalTimer);
+            }
+          };
+          window.startKickPolling();
+          store.loadSessions();
+          store.loadKbList();
+          return true;
+        } catch (e) {
+          this.loginError = '网络错误';
+          return false;
+        }
+      },
+      async checkRegPassword() {
+        const pwd = store.auth.regForm.password;
+        if (!pwd) { store.auth.regStrength = null; return; }
+        try {
+          const resp = await fetch('/api/auth/password-strength', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pwd }),
+          });
+          store.auth.regStrength = await resp.json();
+        } catch (_) {}
+      },
+      async register() {
+        this.regError = '';
+        try {
+          const resp = await fetch('/api/auth/register', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.regForm),
+          });
+          const data = await resp.json();
+          if (!resp.ok) { this.regError = data.detail || '注册失败'; return false; }
+          // 注册成功自动登录
+          this.loginForm = { username: this.regForm.username, password: this.regForm.password };
+          await this.login();
+          return true;
+        } catch (e) {
+          this.regError = '网络错误';
+          return false;
+        }
+      },
+      async logout() {
+        try {
+          if (this.token) {
+            await fetch('/api/auth/logout', { method: 'POST' });
+          }
+        } catch (e) {}
+        this.token = null;
+        this.user = null;
+        this.loggedIn = false;
+        this.kicked = false;
+        this.kickedModal = false;
+        window.__authToken = null;
+        window.stopKickPolling();
+        // 重置视图
+        store.view = 'chat';
+        store.sessions = [];
+        store.messages = [];
+        store.currentSession = null;
+      }
+    },
+
+    /* ---- 主题 ---- */
+    theme: localStorage.getItem('rag-theme') || 'dark',
+    applyTheme(t) {
+      this.theme = t;
+      localStorage.setItem('rag-theme', t);
+      document.documentElement.dataset.theme = t;
+    },
+
     // 当前视图: chat | kb | dashboard | memory | settings
     view: 'chat',
 
@@ -1634,16 +3418,23 @@
 
     /* ---- 知识库分组列表（供各下拉框共用） ---- */
     kbList: [],
+    kbPage: 1, kbPageSize: 10, kbTotal: 0, kbPages: 1,
     async loadKbList() {
-      try { this.kbList = await (await fetch('/api/kb')).json(); }
-      catch (e) { console.error(e); }
+      try {
+        const r = await (await fetch(`/api/kb?page=${this.kbPage}&page_size=${this.kbPageSize}`)).json();
+        if (Array.isArray(r)) { this.kbList = r; this.kbTotal = r.length; this.kbPages = 1; }
+        else { this.kbList = r.items; this.kbTotal = r.total; this.kbPages = r.pages; }
+      } catch (e) { console.error(e); }
     },
+    gotoKbPage(p) { this.kbPage = p; this.loadKbList(); },
+    changeKbPageSize(s) { this.kbPageSize = s; this.kbPage = 1; this.loadKbList(); },
 
     /* ---- 知识库统计 ---- */
     statDocs: 0, statChunks: 0,
 
     /* ---- 会话与消息 ---- */
     sessions: [],
+    sessPage: 1, sessPageSize: 20, sessTotal: 0, sessPages: 1,
     currentSession: null,
     currentIsEmpty: false,   // 当前会话是否还没有消息
     messages: [],            // { role, content, sources?, images?, toolCall?, slowTip? }
@@ -1675,9 +3466,12 @@
     },
 
     async loadSessions() {
-      const list = await (await fetch('/api/sessions')).json();
-      this.sessions = list;
+      const r = await (await fetch(`/api/sessions?page=${this.sessPage}&page_size=${this.sessPageSize}`)).json();
+      if (Array.isArray(r)) { this.sessions = r; this.sessTotal = r.length; this.sessPages = 1; }
+      else { this.sessions = r.items; this.sessTotal = r.total; this.sessPages = r.pages; }
     },
+    gotoSessPage(p) { this.sessPage = p; this.loadSessions(); },
+    changeSessPageSize(s) { this.sessPageSize = s; this.sessPage = 1; this.loadSessions(); },
 
     async newSession() {
       // 当前已是空会话则直接清屏复用，避免堆积空"新对话"
@@ -1730,20 +3524,42 @@
     data: () => ({ store }),
     methods: {
       onNav(v) {
+        // superadmin-only 视图（比 admin 更严格）
+        const superadminViews = ['settings', 'audit'];
+        if (superadminViews.includes(v) && store.auth.user?.role !== 'superadmin') {
+          store.view = 'chat';
+          store.toast('该功能仅超级管理员可用');
+          return;
+        }
+        // admin-only 视图权限检查
+        const adminViews = ['kb', 'dashboard', 'memory', 'agent'];
+        if (adminViews.includes(v) && store.auth.user?.role !== 'admin' && store.auth.user?.role !== 'superadmin') {
+          store.view = 'chat';
+          store.toast('该功能需要管理员权限');
+          return;
+        }
         store.view = v;
         this.$nextTick(() => {
           if (v === 'kb' && this.$refs.kbView) this.$refs.kbView.loadAll();
           if (v === 'dashboard' && this.$refs.dashView) this.$refs.dashView.load();
           if (v === 'memory' && this.$refs.memView) this.$refs.memView.load();
+          if (v === 'agent' && this.$refs.agentView) this.$refs.agentView.load();
           if (v === 'settings' && this.$refs.settingsView) this.$refs.settingsView.load();
+          if (v === 'audit' && this.$refs.auditView) this.$refs.auditView.load();
         });
       }
     },
     mounted() {
-      store.loadSessions();
-      store.loadKbList();
-      // 启动即加载文档，用于知识库统计
-      if (this.$refs.kbView) this.$refs.kbView.loadAll();
+      // 初始化主题（从 localStorage 读取或默认深色）
+      const savedTheme = localStorage.getItem('rag-theme') || 'dark';
+      document.documentElement.dataset.theme = savedTheme;
+      store.theme = savedTheme;
+      store.applyTheme = function(t) {
+        store.theme = t;
+        localStorage.setItem('rag-theme', t);
+        document.documentElement.dataset.theme = t;
+      };
+      // 不再自动加载数据——等登录后 store.auth.login() 里自动加载
     }
   });
   app.config.globalProperties.store = store;
@@ -1756,14 +3572,38 @@
     emits: ['nav'],
     data: () => ({
       store,
-      navs: [
-        { key: 'chat', label: '💬 对话' },
-        { key: 'kb', label: '📚 知识库' },
-        { key: 'dashboard', label: '📊 看板' },
-        { key: 'memory', label: '🧠 记忆' },
-        { key: 'settings', label: '⚙️ 设置' }
+      showMenu: false,
+      allNavs: [
+        { key: 'chat', label: '💬 对话', role: 'user' },
+        { key: 'kb', label: '📚 知识库', role: 'admin' },
+        { key: 'dashboard', label: '📊 看板', role: 'admin' },
+        { key: 'memory', label: '🧠 记忆', role: 'admin' },
+        { key: 'agent', label: '🤖 Agent', role: 'admin' },
+        { key: 'settings', label: '⚙️ 设置', role: 'superadmin' },
+        { key: 'audit', label: '🔐 安全审计', role: 'superadmin' }
       ]
-    })
+    }),
+    computed: {
+      visibleNavs() {
+        const role = this.store.auth.user?.role || 'user';
+        const rank = { user: 0, admin: 1, superadmin: 2 }[role] ?? 0;
+        return this.allNavs.filter(n => ({ user: 0, admin: 1, superadmin: 2 }[n.role] <= rank));
+      },
+      roleLabel() {
+        const r = this.store.auth.user?.role;
+        return { superadmin: '超级管理员', admin: '管理员', user: '普通用户' }[r] || '';
+      }
+    },
+    methods: {
+      toggleTheme() {
+        const next = store.theme === 'dark' ? 'light' : 'dark';
+        store.applyTheme(next);
+      }
+    },
+    mounted() {
+      // 点击其他地方关闭下拉
+      document.addEventListener('click', () => { this.showMenu = false; });
+    }
   });
 
   /* ================================================================
@@ -1918,6 +3758,38 @@
       formatSources(sources) {
         return sources.map(s => `${s.doc} (${s.score})`).join('、');
       },
+      renderContent(content, sources) {
+        /** 把 AI 回答里的 [图片1]、[图片2] ... 替换成实际 <img> 标签
+         *  sources 按 ref_num 排序，每个 source.image 是分号拼接的多图 URL
+         */
+        if (!content) return content === null ? '' : '';
+        let html = content
+          // 基础转义（防止 XSS）
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          // 换行转 <br>
+          .replace(/\n/g, '<br>');
+
+        if (sources && sources.length) {
+          // 建立图片引用映射：从所有 sources 的 image 字段收集
+          // 每个 source.image 是 "url1;url2" 格式
+          const allImages = [];
+          sources.forEach(s => {
+            if (s.image) {
+              s.image.split(';').forEach(u => { if (u) allImages.push(u); });
+            }
+          });
+          // 替换 [图片N]（从 1 开始）
+          html = html.replace(/\[图片(\d+)\]/g, (match, num) => {
+            const idx = parseInt(num, 10) - 1;
+            if (idx >= 0 && idx < allImages.length) {
+              const url = allImages[idx].split(';')[0];
+              return `<img src="${url}" class="inline-img" onclick="window.open('${url}','_blank')" style="cursor:zoom-in;max-width:100%;border-radius:8px;margin:8px 0;">`;
+            }
+            return match;  // 找不到对应图片就原样保留
+          });
+        }
+        return html;
+      },
       scrollBottom() {
         this.$nextTick(() => {
           const b = this.$refs.chatBox;
@@ -2027,6 +3899,8 @@
                 msg.stage = null;
                 msg.totalMs = data.total_ms || null;
                 msg.traceId = data.trace_id || null;
+                msg.handoffSuggest = !!data.handoff_suggest;
+                msg.handoffMessage = data.handoff_message || '';
                 if (firstToken) { firstToken = false; clearTimeout(slowTimer); msg.slowTip = false; msg.content = '（模型没有返回内容）'; }
                 if (data.sources && data.sources.length) msg.sources = data.sources;
                 this.speakAnswer(msg.content); // 数字人口播：回答完成后同步语音播报
@@ -2060,6 +3934,41 @@
         store.toast('已复制');
       },
       regen(m) { this.send(m.content); },
+
+      /* ---- 转人工确认 ---- */
+      async confirmHandoff(m) {
+        m.handoffLoading = true;
+        try {
+          const resp = await fetch('/api/handoff', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + store.auth.token,
+            },
+            body: JSON.stringify({
+              session_id: store.currentSession,
+              question: this.inputText || '',
+              reason: '用户点击确认转人工（AI 无法作答）',
+            }),
+          });
+          const r = await resp.json();
+          if (r.ok) {
+            m.handoffSuggest = false;
+            m.handoffConfirmed = true;
+            m.content += '\n\n📞 **已为您创建转人工请求**，客服人员会尽快处理，请稍候。';
+            store.toast('已提交转人工请求，管理员会收到通知');
+          } else {
+            store.toast('提交失败: ' + (r.detail || r.message));
+          }
+        } catch (e) {
+          store.toast('提交转人工失败: ' + e.message);
+        }
+        m.handoffLoading = false;
+      },
+      declineHandoff(m) {
+        m.handoffSuggest = false;
+        store.toast('好的，已忽略转人工提示');
+      },
 
       /* ---- 召回图片点击 → 灯箱放大（用 URL 直接引用） ---- */
       previewSrcImg(url) {
@@ -2197,18 +4106,60 @@
       showKbModal: false,
       showUploadModal: false,
       pendingFiles: [],
-      urlFetching: false
+      urlFetching: false,
+      // 分页状态（每个列表独立）
+      docPage: 1, docPageSize: 10, docTotal: 0, docPages: 1,
+      unPage: 1, unPageSize: 10, unTotal: 0, unPages: 1,
+      faqPage: 1, faqPageSize: 10, faqTotal: 0, faqPages: 1,
+      rulePage: 1, rulePageSize: 10, ruleTotal: 0, rulePages: 1,
+      tkPage: 1, tkPageSize: 10, tkTotal: 0, tkPages: 1,
+      hoPage: 1, hoPageSize: 10, hoTotal: 0, hoPages: 1
     }),
+    computed: {
+      // 判断当前文档是否是父子分块（只要有一个 chunk 有 parent_id 就算）
+      isParentChild() {
+        if (!this.chunks || !this.chunks.length) return false;
+        return this.chunks.some(ch => ch.parent_id);
+      },
+      // 通用模式：flat 单层列表
+      flatChunks() {
+        return this.chunks || [];
+      },
+      // 父子模式：按 parent_id 分组 —— 父块模块 → 子块列表（Dify 风格）
+      groupedChunks() {
+        if (!this.chunks || !this.chunks.length) return [];
+        const groups = [];
+        const seen = new Map();
+
+        this.chunks.forEach((ch, idx) => {
+          const pid = ch.parent_id || `__orphan_${idx}`;
+          if (!seen.has(pid)) {
+            seen.set(pid, {
+              parent_id: pid,
+              parent_text: ch.parent_text || ch.text,
+              children: [],
+              is_flat: false
+            });
+            groups.push(seen.get(pid));
+          }
+          seen.get(pid).children.push({ ...ch, child_index: seen.get(pid).children.length + 1 });
+        });
+        return groups;
+      }
+    },
     methods: {
       /* ---- 加载入口 ---- */
       loadAll() { this.loadDocs(); },
 
       async loadDocs() {
-        const list = await (await fetch('/api/documents')).json();
+        const r = await (await fetch(`/api/documents?page=${this.docPage}&page_size=${this.docPageSize}`)).json();
+        const list = Array.isArray(r) ? r : r.items;
         this.docs = list;
+        this.docTotal = Array.isArray(r) ? r.length : r.total;
+        this.docPages = Array.isArray(r) ? 1 : r.pages;
         let totalChunks = 0;
         list.forEach(d => { totalChunks += d.chunks; });
-        store.statDocs = list.length;
+        store.statDocs = this.docTotal;
         store.statChunks = totalChunks;
         this.loadUnanswered();
         this.loadFaq();
@@ -2216,6 +4167,18 @@
         this.loadTickets();
         this.loadHandoffs();
       },
+      gotoDocPage(p) { this.docPage = p; this.loadDocs(); },
+      changeDocPageSize(s) { this.docPageSize = s; this.docPage = 1; this.loadDocs(); },
+      gotoUnPage(p) { this.unPage = p; this.loadUnanswered(); },
+      changeUnPageSize(s) { this.unPageSize = s; this.unPage = 1; this.loadUnanswered(); },
+      gotoFaqPage(p) { this.faqPage = p; this.loadFaq(); },
+      changeFaqPageSize(s) { this.faqPageSize = s; this.faqPage = 1; this.loadFaq(); },
+      gotoRulePage(p) { this.rulePage = p; this.loadIntentRules(); },
+      changeRulePageSize(s) { this.rulePageSize = s; this.rulePage = 1; this.loadIntentRules(); },
+      gotoTkPage(p) { this.tkPage = p; this.loadTickets(); },
+      changeTkPageSize(s) { this.tkPageSize = s; this.tkPage = 1; this.loadTickets(); },
+      gotoHoPage(p) { this.hoPage = p; this.loadHandoffs(); },
+      changeHoPageSize(s) { this.hoPageSize = s; this.hoPage = 1; this.loadHandoffs(); },
 
       async delDoc(d) {
         if (!await store.confirm(`确认删除文档「${d.name}」？其所有向量将一并移除。`, '确认删除')) return;
@@ -2251,9 +4214,8 @@
               body: JSON.stringify({
                 url: p.url,
                 kb_id: p.kbId || 'default',
-                chunk_size: p.chunkSize,
-                chunk_overlap: p.chunkOverlap,
-                chunk_mode: p.chunkMode
+                chunk_config: p.chunkConfig,
+                embed_model: p.embedModel || ''
               })
             });
             const data = await resp.json();
@@ -2289,12 +4251,10 @@
           try {
             let resp;
             if (isImg) {
-              // 图片知识库：视觉模型生成描述后入库
               resp = await fetch('/api/upload_image', { method: 'POST', body: fd });
             } else {
-              fd.append('chunk_size', opts.chunkSize);
-              fd.append('chunk_overlap', opts.chunkOverlap);
-              fd.append('chunk_mode', opts.chunkMode);
+              fd.append('chunk_config', JSON.stringify(opts.chunkConfig));
+              if (opts.embedModel) fd.append('embed_model', opts.embedModel);
               resp = await fetch('/api/upload', { method: 'POST', body: fd });
             }
             const data = await resp.json();
@@ -2327,7 +4287,9 @@
       /* ---- 待补充问题 ---- */
       async loadUnanswered() {
         try {
-          this.unanswered = await (await fetch('/api/unanswered')).json();
+          const r = await (await fetch(`/api/unanswered?page=${this.unPage}&page_size=${this.unPageSize}`)).json();
+          if (Array.isArray(r)) { this.unanswered = r; this.unTotal = r.length; this.unPages = 1; }
+          else { this.unanswered = r.items; this.unTotal = r.total; this.unPages = r.pages; }
         } catch (e) { console.error('加载待补充问题失败:', e); }
       },
       async delUnanswered(item) {
@@ -2337,7 +4299,9 @@
 
       /* ---- FAQ ---- */
       async loadFaq() {
-        this.faqs = await (await fetch('/api/faq')).json();
+        const r = await (await fetch(`/api/faq?page=${this.faqPage}&page_size=${this.faqPageSize}`)).json();
+        if (Array.isArray(r)) { this.faqs = r; this.faqTotal = r.length; this.faqPages = 1; }
+        else { this.faqs = r.items; this.faqTotal = r.total; this.faqPages = r.pages; }
       },
       async addFaq() {
         const q = this.faqQ.trim();
@@ -2359,7 +4323,9 @@
 
       /* ---- 意图规则 ---- */
       async loadIntentRules() {
-        this.rules = await (await fetch('/api/intent-rules')).json();
+        const r = await (await fetch(`/api/intent-rules?page=${this.rulePage}&page_size=${this.rulePageSize}`)).json();
+        if (Array.isArray(r)) { this.rules = r; this.ruleTotal = r.length; this.rulePages = 1; }
+        else { this.rules = r.items; this.ruleTotal = r.total; this.rulePages = r.pages; }
       },
       async addRule() {
         const name = this.irName.trim();
@@ -2391,7 +4357,9 @@
 
       /* ---- 工单 ---- */
       async loadTickets() {
-        this.tickets = await (await fetch('/api/tickets')).json();
+        const r = await (await fetch(`/api/tickets?page=${this.tkPage}&page_size=${this.tkPageSize}`)).json();
+        if (Array.isArray(r)) { this.tickets = r; this.tkTotal = r.length; this.tkPages = 1; }
+        else { this.tickets = r.items; this.tkTotal = r.total; this.tkPages = r.pages; }
       },
       async toggleTicket(t) {
         await fetch(`/api/tickets/${t.id}/status`, {
@@ -2404,7 +4372,9 @@
 
       /* ---- 转人工 ---- */
       async loadHandoffs() {
-        this.handoffs = await (await fetch('/api/handoffs')).json();
+        const r = await (await fetch(`/api/handoffs?page=${this.hoPage}&page_size=${this.hoPageSize}`)).json();
+        if (Array.isArray(r)) { this.handoffs = r; this.hoTotal = r.length; this.hoPages = 1; }
+        else { this.handoffs = r.items; this.hoTotal = r.total; this.hoPages = r.pages; }
       },
       async toggleHandoff(h) {
         await fetch(`/api/handoffs/${h.id}/status`, {
@@ -2489,7 +4459,8 @@
     template: '#tpl-chunk-card',
     props: {
       chunk: { type: Object, required: true },
-      docId: { required: true }
+      docId: { required: true },
+      childIndex: { type: Number, default: null }  // 父子分块时的子块编号
     },
     data: () => ({
       editing: false,
@@ -2584,19 +4555,75 @@
         tab: 'file',
         url: '',
         targetKb: this.defaultKb || 'default',
-        chunkSize: 500,
-        chunkOverlap: 50,
-        parentChild: false
+        uid: Math.random().toString(36).slice(2, 8),  // radio name 唯一化
+        // ===== 二选一：通用分段 / 父子分段 =====
+        chunkMode: 'parent_child',
+
+        // ===== 通用分段参数 =====
+        gSeparator: '',
+        gMaxLen: 500,
+        gOverlap: 50,
+
+        // ===== 父子分段参数 =====
+        parentStrategy: 'paragraph',  // paragraph / document
+        pSeparator: '',
+        pMaxLen: 1024,
+        cSeparator: '',
+        cMaxLen: 300,
+
+        embedModels: [],
+        embedModel: '',
+        // ===== 文本预处理规则（默认全开启，strip_urls 默认关）=====
+        ppCleanWhitespace: true,
+        ppStripHtml: true,
+        ppNormalizeSpaces: true,
+        ppStripUrls: false
       };
+    },
+    async mounted() {
+      try {
+        const resp = await fetch('/api/embed-models');
+        if (resp.ok) {
+          this.embedModels = await resp.json();
+          const def = this.embedModels.find(m => m.default);
+          this.embedModel = def ? def.name : (this.embedModels[0]?.name || '');
+        }
+      } catch (e) { console.warn('加载 embedding 模型失败', e); }
     },
     methods: {
       fmtSize(f) { return (f.size / 1024).toFixed(1) + ' KB'; },
       ok() {
+        // 根据分块模式构建 chunk_config（对齐后端新 Dify 格式）
+        let chunkConfig;
+        if (this.chunkMode === 'parent_child') {
+          chunkConfig = {
+            mode: 'parent_child',
+            parent_strategy: this.parentStrategy,  // paragraph / document
+            parent_separator: this.pSeparator?.trim() || null,
+            parent_max_length: parseInt(this.pMaxLen),
+            child_separator: this.cSeparator?.trim() || null,
+            child_max_length: parseInt(this.cMaxLen),
+          };
+        } else {
+          chunkConfig = {
+            mode: 'general',
+            separator: this.gSeparator?.trim() || null,
+            max_length: parseInt(this.gMaxLen),
+            overlap: parseInt(this.gOverlap),
+          };
+        }
+        // 文本预处理规则（Dify 风格）
+        chunkConfig.preprocess_rules = {
+          clean_whitespace: this.ppCleanWhitespace,
+          strip_html: this.ppStripHtml,
+          normalize_spaces: this.ppNormalizeSpaces,
+          strip_urls: this.ppStripUrls,
+        };
         const common = {
           kbId: this.targetKb || 'default',
-          chunkSize: parseInt(this.chunkSize),
-          chunkOverlap: parseInt(this.chunkOverlap),
-          chunkMode: this.parentChild ? 'parent_child' : 'flat'
+          chunkMode: this.chunkMode,
+          chunkConfig: chunkConfig,
+          embedModel: this.embedModel || ''
         };
         if (this.tab === 'url') {
           const url = this.url.trim();
@@ -2621,12 +4648,32 @@
       saving: false,
       setTab: 'prompt',
       tabs: [
+        { key: 'llm', icon: '🧠', label: 'LLM 模型' },
         { key: 'prompt', icon: '📝', label: '提示词' },
         { key: 'security', icon: '🔒', label: '安全' },
         { key: 'retrieval', icon: '🔍', label: '检索配置' },
         { key: 'reply', icon: '⚡', label: '快捷回复' },
         { key: 'storage', icon: '💾', label: '数据存储' }
       ],
+      // LLM Provider（统一入口）
+      llmProvider: 'ollama',
+      llmBase: '',
+      llmApiKey: '',
+      llmTemperature: 0.7,
+      providerOptions: [],
+      // LLM / Ollama
+      ollamaBase: '',
+      chatModel: '',
+      visionModel: '',
+      embedModel: '',
+      vlEmbedModel: '',
+      keepAliveEmbed: -1,
+      keepAliveVlEmbed: -1,
+      keepAliveChat: 0,
+      keepAliveVision: 0,
+      availableModels: [],
+      testResult: null,
+      testing: false,
       kbPrompt: '',
       noMatchPrompt: '',
       directPrompt: '',
@@ -2646,11 +4693,40 @@
       newDataDir: '',
       migrating: false
     }),
+    computed: {
+      providerLabels() {
+        const map = {};
+        (this.providerOptions || []).forEach(p => { map[p.key] = p.label; });
+        return map;
+      },
+      providerBasePlaceholders() {
+        return {
+          openai_compat: '如 https://api.deepseek.com/v1',
+          baidu_ernie: 'API Base URL（百度已固定，保持默认）',
+          aliyun_dashscope: 'API Base URL（阿里已固定，保持默认）',
+        };
+      },
+    },
     methods: {
       async load() {
         if (this.loaded) return;
         try {
-          const s = await (await fetch('/api/settings')).json();
+          const token = store.auth.token;
+          const headers = { 'Authorization': 'Bearer ' + token };
+          const s = await (await fetch('/api/settings', { headers })).json();
+          this.llmProvider = s.llm_provider || 'ollama';
+          this.llmBase = s.llm_base || '';
+          this.llmApiKey = s.llm_api_key || '';
+          this.llmTemperature = s.llm_temperature ?? 0.7;
+          this.ollamaBase = s.ollama_base || '';
+          this.chatModel = s.chat_model || '';
+          this.visionModel = s.vision_model || '';
+          this.embedModel = s.embed_model || '';
+          this.vlEmbedModel = s.vl_embed_model || '';
+          this.keepAliveEmbed = s.keep_alive_embed ?? -1;
+          this.keepAliveVlEmbed = s.keep_alive_vl_embed ?? -1;
+          this.keepAliveChat = s.keep_alive_chat ?? 0;
+          this.keepAliveVision = s.keep_alive_vision ?? 0;
           this.kbPrompt = s.kb_prompt;
           this.noMatchPrompt = s.no_match_prompt;
           this.directPrompt = s.direct_prompt;
@@ -2665,28 +4741,88 @@
           this.faqThreshold = s.faq_threshold ?? 0.6;
           this.intentEnabled = !!s.intent_enabled;
           this.loaded = true;
-          const dd = await (await fetch('/api/settings/data_dir')).json();
+          const dd = await (await fetch('/api/settings/data_dir', { headers })).json();
           this.dataDir = dd.data_dir;
           this.defaultDir = dd.default_dir;
+          // 顺手拉一次当前 Ollama 上已安装模型列表
+          try {
+            this.availableModels = await (await fetch('/api/models')).json();
+          } catch (_) { this.availableModels = []; }
+          // 拉可用 LLM Provider 列表
+          try {
+            this.providerOptions = await (await fetch('/api/providers')).json();
+          } catch (_) { this.providerOptions = []; }
         } catch (e) {
           store.toast('加载设置失败: ' + e.message);
         }
       },
+      async reloadModels() {
+        try {
+          this.availableModels = await (await fetch('/api/models')).json();
+          store.toast('已刷新模型列表（' + this.availableModels.length + ' 个已安装模型）');
+        } catch (e) {
+          store.toast('刷新失败，请确认 Ollama 已启动');
+        }
+      },
+      async testLLM() {
+        this.testing = true; this.testResult = null;
+        try {
+          const body = {
+            provider: this.llmProvider,
+            model: this.chatModel,
+          };
+          if (this.llmProvider === 'ollama') {
+            body.ollama_base = this.ollamaBase || 'http://localhost:11434';
+          } else {
+            body.llm_base = this.llmBase;
+            body.llm_api_key = this.llmApiKey;
+          }
+          const resp = await fetch('/api/settings/test_llm', {
+            method: 'POST', headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + store.auth.token,
+            },
+            body: JSON.stringify(body),
+          });
+          const r = await resp.json();
+          this.testResult = r;
+          if (r.ok) store.toast('✅ 连通成功');
+          else store.toast('❌ 连通失败（' + r.stage + '）' + r.message);
+        } catch (e) {
+          this.testResult = { ok: false, message: e.message };
+          store.toast('❌ 连通失败: ' + e.message);
+        }
+        this.testing = false;
+      },
       resetDefaults() {
         if (!confirm('确定要恢复全部默认设置吗？当前修改将丢失。')) return;
-        this.kbPrompt = DEFAULT_SETTINGS.kb_prompt;
-        this.noMatchPrompt = DEFAULT_SETTINGS.no_match_prompt;
-        this.directPrompt = DEFAULT_SETTINGS.direct_prompt;
-        this.sensitiveWords = DEFAULT_SETTINGS.sensitive_words;
-        this.rewriteEnabled = DEFAULT_SETTINGS.rewrite_enabled;
-        this.rerankEnabled = DEFAULT_SETTINGS.rerank_enabled;
-        this.rerankWeight = DEFAULT_SETTINGS.rerank_vector_weight;
-        this.rerankCandidates = DEFAULT_SETTINGS.rerank_candidates;
-        this.hybridEnabled = DEFAULT_SETTINGS.hybrid_enabled;
-        this.hybridWeight = DEFAULT_SETTINGS.hybrid_vector_weight;
-        this.faqEnabled = DEFAULT_SETTINGS.faq_enabled;
-        this.faqThreshold = DEFAULT_SETTINGS.faq_threshold;
-        this.intentEnabled = DEFAULT_SETTINGS.intent_enabled;
+        const D = DEFAULT_SETTINGS;
+        this.llmProvider = D.llm_provider;
+        this.llmBase = D.llm_base;
+        this.llmApiKey = D.llm_api_key;
+        this.llmTemperature = D.llm_temperature;
+        this.ollamaBase = D.ollama_base;
+        this.chatModel = D.chat_model;
+        this.visionModel = D.vision_model;
+        this.embedModel = D.embed_model;
+        this.vlEmbedModel = D.vl_embed_model;
+        this.keepAliveEmbed = D.keep_alive_embed;
+        this.keepAliveVlEmbed = D.keep_alive_vl_embed;
+        this.keepAliveChat = D.keep_alive_chat;
+        this.keepAliveVision = D.keep_alive_vision;
+        this.kbPrompt = D.kb_prompt;
+        this.noMatchPrompt = D.no_match_prompt;
+        this.directPrompt = D.direct_prompt;
+        this.sensitiveWords = D.sensitive_words;
+        this.rewriteEnabled = D.rewrite_enabled;
+        this.rerankEnabled = D.rerank_enabled;
+        this.rerankWeight = D.rerank_vector_weight;
+        this.rerankCandidates = D.rerank_candidates;
+        this.hybridEnabled = D.hybrid_enabled;
+        this.hybridWeight = D.hybrid_vector_weight;
+        this.faqEnabled = D.faq_enabled;
+        this.faqThreshold = D.faq_threshold;
+        this.intentEnabled = D.intent_enabled;
         store.toast('已恢复默认设置，请点击保存生效');
       },
       async save() {
@@ -2694,8 +4830,21 @@
         try {
           await fetch('/api/settings', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + store.auth.token },
             body: JSON.stringify({
+              llm_provider: this.llmProvider,
+              llm_base: this.llmBase.trim(),
+              llm_api_key: this.llmApiKey,
+              llm_temperature: parseFloat(this.llmTemperature),
+              ollama_base: this.ollamaBase.trim(),
+              chat_model: this.chatModel.trim(),
+              vision_model: this.visionModel.trim(),
+              embed_model: this.embedModel.trim(),
+              vl_embed_model: this.vlEmbedModel.trim(),
+              keep_alive_embed: parseInt(this.keepAliveEmbed, 10),
+              keep_alive_vl_embed: parseInt(this.keepAliveVlEmbed, 10),
+              keep_alive_chat: parseInt(this.keepAliveChat, 10),
+              keep_alive_vision: parseInt(this.keepAliveVision, 10),
               kb_prompt: this.kbPrompt,
               no_match_prompt: this.noMatchPrompt,
               direct_prompt: this.directPrompt,
@@ -2711,7 +4860,7 @@
               intent_enabled: this.intentEnabled
             })
           });
-          store.toast('✅ 设置已保存，立即生效');
+          store.toast('✅ 设置已保存，立即生效（LLM 配置已热更新）');
         } catch (e) {
           store.toast('❌ 保存失败: ' + e.message);
         }
@@ -2752,6 +4901,9 @@
       feedbackList: [],
       qaLog: [],
       trend: null,
+      // 分页状态
+      qaPage: 1, qaPageSize: 10, qaTotal: 0, qaPages: 0,
+      tracePage: 1, tracePageSize: 10, traceTotal: 0, tracePages: 0,
       dashTab: 'overview',
       days: 14,
       tabs: [
@@ -2762,6 +4914,8 @@
         { key: 'log', icon: '📝', label: '问答日志' },
         { key: 'eval', icon: '🧪', label: '评测集' },
         { key: 'health', icon: '🏥', label: '知识库健康度' },
+        { key: 'syshealth', icon: '💗', label: '系统健康检查' },
+        { key: 'cost', icon: '💰', label: '成本追踪' },
         { key: 'trace', icon: '🔗', label: '链路追踪' }
       ],
       dayOptions: [7, 14, 30],
@@ -2771,8 +4925,16 @@
       evalReport: null,
       newEvalQ: '',
       newEvalA: '',
+      evPage: 1, evPageSize: 10, evTotal: 0, evPages: 1,
       // 知识库健康度
       kbHealth: [],
+      // 系统健康检查
+      sysHealth: null,
+      // 成本追踪
+      costData: null,
+      costDays: 30,
+      // 告警
+      alerts: {},
       // 链路追踪
       traceList: [],
       traceDetail: null
@@ -2917,8 +5079,17 @@
       fmtTs(ts) { return new Date(ts * 1000).toLocaleString(); },
       switchTab(k) {
         this.dashTab = k;
+        if (k === 'trend' || k === 'distribution') {
+          // v-show 切回来时 DOM 尺寸刚恢复，ECharts 需要 resize + render
+          this.$nextTick(() => {
+            try { (this._echBar||{}).resize?.(); (this._echLine||{}).resize?.(); (this._echPie1||{}).resize?.(); (this._echPie2||{}).resize?.(); (this._echLat||{}).resize?.(); } catch(e){}
+            this.renderECharts();
+          });
+        }
         if (k === 'eval') this.loadEval();
         if (k === 'health') this.loadHealth();
+        if (k === 'syshealth') this.loadSysHealth();
+        if (k === 'cost') this.loadCost();
         if (k === 'trace') this.loadTraces();
       },
       async changeDays(d) {
@@ -2929,13 +5100,119 @@
         const s = await (await fetch('/api/stats')).json();
         this.stats = s;
         this.feedbackList = await (await fetch('/api/feedback')).json();
-        this.qaLog = await (await fetch('/api/qa_log?limit=50')).json();
+        // 问答日志带分页
+        const qa = await (await fetch(`/api/qa_log?page=${this.qaPage}&page_size=${this.qaPageSize}`)).json();
+        if (Array.isArray(qa)) { this.qaLog = qa; this.qaTotal = qa.length; this.qaPages = 1; }
+        else { this.qaLog = qa.items; this.qaTotal = qa.total; this.qaPages = qa.pages; }
         this.loadTrend();
+      },
+      gotoQaPage(p) { this.qaPage = p; this.load(); },
+      changeQaPageSize(s) { this.qaPageSize = s; this.qaPage = 1; this.load(); },
+      gotoTracePage(p) { this.tracePage = p; this.loadTraces(); },
+      changeTracePageSize(s) { this.tracePageSize = s; this.tracePage = 1; this.loadTraces(); },
+      async loadTraces() {
+        try {
+          const r = await (await fetch(`/api/traces?page=${this.tracePage}&page_size=${this.tracePageSize}`)).json();
+          if (Array.isArray(r)) { this.traceList = r; this.traceTotal = r.length; this.tracePages = 1; }
+          else { this.traceList = r.items; this.traceTotal = r.total; this.tracePages = r.pages; }
+        } catch (e) { console.error(e); }
       },
       async loadTrend() {
         try {
           this.trend = await (await fetch(`/api/stats/trend?days=${this.days}`, { cache: 'no-store' })).json();
+          // 数据到了就更新 ECharts（如果当前 tab 就是 trend/distribution）
+          this.$nextTick(() => {
+            this.renderECharts();
+          });
         } catch (e) { console.error(e); }
+      },
+      /* ---- ECharts 图表渲染 ---- */
+      renderECharts() {
+        if (typeof echarts === 'undefined') return;
+        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const textColor = dark ? '#cbd5e1' : '#475569';
+        const gridLine = dark ? '#334155' : '#e2e8f0';
+
+        // ---- 趋势柱状图：每日问答量 ----
+        const barEl = this.$refs.echartsTrendBar;
+        if (barEl) {
+          if (!this._echBar) this._echBar = echarts.init(barEl);
+          const dates = (this.trend?.days || []).map(d => d.slice(5)); // 去掉年份
+          const counts = (this.trend?.days || []).map(d => this.trend.date_counts[d] || 0);
+          this._echBar.setOption({
+            tooltip: { trigger: 'axis' },
+            grid: { left: 40, right: 16, top: 20, bottom: 30 },
+            xAxis: { type: 'category', data: dates, axisLine: { lineStyle: { color: gridLine } }, axisLabel: { color: textColor } },
+            yAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: gridLine } }, axisLabel: { color: textColor } },
+            series: [{ type: 'bar', data: counts, barWidth: '60%', itemStyle: { borderRadius: [4, 4, 0, 0], color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: '#3b82f6' }, { offset: 1, color: '#60a5fa' }
+            ]) } }],
+          }, true);
+        }
+
+        // ---- 趋势折线图：点赞/点踩 ----
+        const lineEl = this.$refs.echartsTrendLine;
+        if (lineEl) {
+          if (!this._echLine) this._echLine = echarts.init(lineEl);
+          const dates = (this.trend?.days || []).map(d => d.slice(5));
+          const likes = dates.map(d => this.trend.feedback?.likes?.[d] || 0);
+          const dislikes = dates.map(d => this.trend.feedback?.dislikes?.[d] || 0);
+          this._echLine.setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['👍 点赞', '👎 点踩'], top: 4, textStyle: { color: textColor } },
+            grid: { left: 40, right: 16, top: 36, bottom: 30 },
+            xAxis: { type: 'category', data: dates, axisLine: { lineStyle: { color: gridLine } }, axisLabel: { color: textColor } },
+            yAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: gridLine } }, axisLabel: { color: textColor } },
+            series: [
+              { name: '👍 点赞', type: 'line', data: likes, smooth: true, itemStyle: { color: '#22c55e' }, areaStyle: { opacity: 0.15, color: '#22c55e' } },
+              { name: '👎 点踩', type: 'line', data: dislikes, smooth: true, itemStyle: { color: '#ef4444' }, areaStyle: { opacity: 0.15, color: '#ef4444' } },
+            ],
+          }, true);
+        }
+
+        // ---- 饼图：赞踩占比 ----
+        const pieEl1 = this.$refs.echartsPieLike;
+        if (pieEl1) {
+          if (!this._echPie1) this._echPie1 = echarts.init(pieEl1);
+          this._echPie1.setOption({
+            tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+            legend: { bottom: 0, textStyle: { color: textColor } },
+            series: [{ type: 'pie', radius: ['45%', '70%'], center: ['50%', '45%'],
+              data: [
+                { name: '👍 点赞', value: this.pieLikes, itemStyle: { color: '#22c55e' } },
+                { name: '👎 点踩', value: this.pieDislikes, itemStyle: { color: '#ef4444' } },
+              ], label: { formatter: '{b}\n{d}%', color: textColor },
+            }],
+          }, true);
+        }
+
+        // ---- 饼图：问答来源 ----
+        const pieEl2 = this.$refs.echartsPieSource;
+        if (pieEl2) {
+          if (!this._echPie2) this._echPie2 = echarts.init(pieEl2);
+          this._echPie2.setOption({
+            tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+            legend: { bottom: 0, textStyle: { color: textColor } },
+            series: [{ type: 'pie', radius: ['45%', '70%'], center: ['50%', '45%'],
+              data: (this.sourceData || []).map(s => ({ name: s.name, value: s.value, itemStyle: { color: s.color } })),
+              label: { formatter: '{b}\n{d}%', color: textColor },
+            }],
+          }, true);
+        }
+
+        // ---- 耗时分布 ----
+        const latEl = this.$refs.echartsLatency;
+        if (latEl && this.latBars) {
+          if (!this._echLat) this._echLat = echarts.init(latEl);
+          this._echLat.setOption({
+            tooltip: { trigger: 'axis' },
+            grid: { left: 50, right: 16, top: 20, bottom: 30 },
+            xAxis: { type: 'category', data: this.latBars.map(b => b.label), axisLine: { lineStyle: { color: gridLine } }, axisLabel: { color: textColor } },
+            yAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: gridLine } }, axisLabel: { color: textColor } },
+            series: [{ type: 'bar', data: this.latBars.map(b => b.v), barWidth: '60%',
+              itemStyle: { borderRadius: [4, 4, 0, 0], color: (p) => this.latBars[p.dataIndex].color } }],
+          }, true);
+        }
       },
       exportBadcase() {
         const a = document.createElement('a');
@@ -2947,9 +5224,14 @@
       },
       /* ---- 评测集 ---- */
       async loadEval() {
-        try { this.evalCases = await (await fetch('/api/eval/cases')).json(); }
-        catch (e) { console.error(e); }
+        try {
+          const r = await (await fetch(`/api/eval/cases?page=${this.evPage}&page_size=${this.evPageSize}`)).json();
+          if (Array.isArray(r)) { this.evalCases = r; this.evTotal = r.length; this.evPages = 1; }
+          else { this.evalCases = r.items; this.evTotal = r.total; this.evPages = r.pages; }
+        } catch (e) { console.error(e); }
       },
+      gotoEvPage(p) { this.evPage = p; this.loadEval(); },
+      changeEvPageSize(s) { this.evPageSize = s; this.evPage = 1; this.loadEval(); },
       async addEvalCase() {
         if (!this.newEvalQ.trim() || !this.newEvalA.trim()) { store.toast('请填写问题和期望答案'); return; }
         await fetch('/api/eval/cases', {
@@ -2984,15 +5266,150 @@
         try { this.kbHealth = await (await fetch('/api/kb/health')).json(); }
         catch (e) { console.error(e); }
       },
-      /* ---- 链路追踪 ---- */
-      async loadTraces() {
-        try { this.traceList = await (await fetch('/api/traces?limit=50')).json(); }
-        catch (e) { console.error(e); }
+      /* ---- 系统健康检查 ---- */
+      async loadSysHealth() {
+        try { this.sysHealth = await (await fetch('/api/health')).json(); }
+        catch (e) { this.sysHealth = { overall: 'error', error: e.message }; }
       },
+      /* ---- 成本追踪 ---- */
+      async loadCost() {
+        const token = store.auth.token;
+        try {
+          let data;
+          try {
+            const r = await fetch(`/api/admin/cost/global?days=${this.costDays}`, {
+              headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (r.ok) data = await r.json();
+          } catch (_) {}
+          if (!data) {
+            const r = await fetch(`/api/admin/cost/me?days=${this.costDays}`, {
+              headers: { 'Authorization': 'Bearer ' + token }
+            });
+            data = await r.json();
+            data._scope = 'me';
+          } else {
+            data._scope = 'global';
+          }
+          this.costData = data;
+        } catch (e) { this.costData = { error: e.message }; }
+      },
+      /* ---- 告警 ---- */
+      async checkAlerts() {
+        const token = store.auth.token;
+        try {
+          const r = await fetch('/api/admin/alerts/check', {
+            method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
+          });
+          if (r.ok) this.alerts = (await r.json()).alerts || {};
+        } catch (_) { /* 非 admin 没权限，忽略 */ }
+      },
+      /* ---- 成本导出 ---- */
+      exportCostCsv() {
+        const token = store.auth.token;
+        const url = `/api/admin/cost/export?days=${this.costDays}&fmt=csv`;
+        fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
+          .then(async r => {
+            const blob = await r.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'cost_' + this.costDays + 'd_' + new Date().toISOString().slice(0,10) + '.csv';
+            a.click();
+            URL.revokeObjectURL(a.href);
+          }).catch(e => store.toast('导出失败: ' + e.message));
+      },
+      /* ---- 链路追踪 ---- */
       async viewTraceDetail(traceId) {
         try {
           this.traceDetail = await (await fetch(`/api/traces/${traceId}`)).json();
         } catch (e) { store.toast('获取链路详情失败: ' + e.message); }
+      }
+    }
+  });
+
+  /* ================================================================
+   * Agent 管理视图
+   * ================================================================ */
+  app.component('agent-view', {
+    template: '#tpl-agent-view',
+    data: () => ({
+      store,
+      agents: [],
+      agPage: 1, agPageSize: 10, agTotal: 0, agPages: 1,
+      editing: null,      // null | agent 对象（带 id 为编辑，不带为新建）
+      form: {
+        name: '', description: '', endpoint: '',
+        auth_type: 'none', auth_value: '', schema_json: '{}'
+      }
+    }),
+    computed: {
+      authPlaceholder() {
+        const t = this.form.auth_type;
+        if (t === 'bearer') return 'Bearer token 值';
+        if (t === 'apikey') return 'API Key 值';
+        if (t === 'basic') return 'username:password';
+        return '（无）';
+      }
+    },
+    methods: {
+      async load() {
+        try {
+          const r = await (await fetch(`/api/agents?page=${this.agPage}&page_size=${this.agPageSize}`)).json();
+          if (Array.isArray(r)) { this.agents = r; this.agTotal = r.length; this.agPages = 1; }
+          else { this.agents = r.items; this.agTotal = r.total; this.agPages = r.pages; }
+        } catch (e) { console.warn('load agents failed', e); }
+      },
+      gotoAgPage(p) { this.agPage = p; this.load(); },
+      changeAgPageSize(s) { this.agPageSize = s; this.agPage = 1; this.load(); },
+      openCreate() {
+        this.form = { name: '', description: '', endpoint: '', auth_type: 'none', auth_value: '', schema_json: '{}' };
+        this.editing = {};
+      },
+      openEdit(a) {
+        this.form = {
+          name: a.name, description: a.description || '', endpoint: a.endpoint || '',
+          auth_type: a.auth_type || 'none', auth_value: a.auth_value || '',
+          schema_json: JSON.stringify(a.schema_json || {}, null, 2)
+        };
+        this.editing = a;
+      },
+      async toggle(a, enabled) {
+        await fetch(`/api/agents/${a.id}/toggle?enabled=${enabled}`, { method: 'POST' });
+        a.enabled = enabled;
+      },
+      async save() {
+        if (!this.form.name.trim()) { store.toast('请填写 Agent 名称'); return; }
+        try {
+          JSON.parse(this.form.schema_json || '{}');
+        } catch { store.toast('Schema 必须是合法 JSON'); return; }
+
+        const payload = {
+          name: this.form.name.trim(),
+          description: this.form.description,
+          endpoint: this.form.endpoint,
+          auth_type: this.form.auth_type,
+          auth_value: this.form.auth_value,
+          schema_json: JSON.parse(this.form.schema_json || '{}')
+        };
+
+        if (this.editing && this.editing.id) {
+          await fetch(`/api/agents/${this.editing.id}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          await fetch('/api/agents', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+        this.editing = null;
+        this.load();
+      },
+      async del(a) {
+        if (!confirm(`确定删除 Agent「${a.name}」？`)) return;
+        await fetch(`/api/agents/${a.id}`, { method: 'DELETE' });
+        this.load();
       }
     }
   });
@@ -3005,17 +5422,569 @@
     data: () => ({
       store,
       memories: [],
-      kindMap: { summary: '📝 会话摘要', preference: '❤️ 用户偏好', fact: '📌 事实信息' }
+      expanded: null,
+      keyword: '',
+      kindFilter: '',
+      kindMap: { summary: '📝 会话摘要', preference: '❤️ 用户偏好', fact: '📌 事实信息' },
+      memPage: 1, memPageSize: 10, memTotal: 0, memPages: 1
     }),
     methods: {
       kindLabel(kind) { return this.kindMap[kind] || kind; },
+      summaryOf(text) {
+        if (!text) return '(空)';
+        const flat = String(text).replace(/\s+/g, ' ');
+        return flat.length > 100 ? flat.slice(0, 100) + '…' : flat;
+      },
+      toggle(id) { this.expanded = this.expanded === id ? null : id; },
+      gotoMemPage(p) { this.memPage = p; this.load(); },
+      changeMemPageSize(s) { this.memPageSize = s; this.memPage = 1; this.load(); },
       async load() {
-        this.memories = await (await fetch('/api/memories')).json();
+        const params = new URLSearchParams();
+        if (this.keyword.trim()) params.append('keyword', this.keyword.trim());
+        if (this.kindFilter) params.append('kind', this.kindFilter);
+        params.append('page', this.memPage);
+        params.append('page_size', this.memPageSize);
+        const url = '/api/memories?' + params.toString();
+        try {
+          const r = await (await fetch(url)).json();
+          if (Array.isArray(r)) { this.memories = r; this.memTotal = r.length; this.memPages = 1; }
+          else { this.memories = r.items; this.memTotal = r.total; this.memPages = r.pages; }
+        } catch (e) {
+          console.warn('load memories failed', e);
+          this.memories = [];
+        }
       },
       async del(m) {
         await fetch(`/api/memories/${m.id}`, { method: 'DELETE' });
+        this.expanded = null;
         this.load();
       }
+    },
+    watch: {
+      keyword() { this.memPage = 1; this.load(); },
+      kindFilter() { this.memPage = 1; this.load(); }
+    }
+  });
+
+  /* ================================================================
+   * 密码二次验证弹窗（通用：force-logout / toggle-user 等敏感操作）
+   * ================================================================ */
+  app.component('password-modal', {
+    template: '#tpl-password-modal',
+    data: () => ({
+      store,
+      visible: false,
+      password: '',
+      desc: '',
+      loading: false,
+      error: '',
+      _resolve: null
+    }),
+    methods: {
+      open(desc) {
+        this.desc = desc || '';
+        this.password = '';
+        this.error = '';
+        this.loading = false;
+        this.visible = true;
+        this.$nextTick(() => this.$refs.pwInput?.focus());
+        return new Promise(resolve => { this._resolve = resolve; });
+      },
+      cancel() {
+        this.visible = false;
+        this._resolve && this._resolve(null);
+        this._resolve = null;
+      },
+      async confirm() {
+        this.loading = true;
+        this.error = '';
+        try {
+          // 调后端 /api/auth/me 拿当前用户名，然后直接用 HTTP Basic 方式？不，后端密码验证
+          // 最简单：我们直接把密码返回给调用方，让调用方自己在 fetch 请求里 body 里带上
+          const pwd = this.password;
+          this.visible = false;
+          this._resolve && this._resolve(pwd);
+          this._resolve = null;
+        } finally {
+          this.loading = false;
+        }
+      }
+    }
+  });
+
+  /* ================================================================
+   * 安全审计看板（superadmin-only）
+   * ================================================================ */
+  app.component('audit-view', {
+    template: '#tpl-audit-view',
+    data: () => ({
+      store,
+      tab: 'audit',
+      tabs: [
+        { key: 'audit', icon: '📋', label: '安全审计' },
+        { key: 'failures', icon: '🚨', label: '登录失败' },
+        { key: 'logs', icon: '📄', label: '系统日志' },
+        { key: 'users', icon: '👥', label: '用户管理' },
+        { key: 'orgs', icon: '🏢', label: '组织架构' },
+        { key: 'roles', icon: '🛡️', label: '角色权限' },
+        { key: 'tasks', icon: '⚙️', label: '异步任务' },
+      ],
+      // 系统日志
+      logs: [], logKeyword: '', logLevel: '',
+      logPage: 1, logPageSize: 10, logTotal: 0, logPages: 1,
+      // 审计
+      auditLogs: [], auditKeyword: '', auditActor: '', auditAction: '',
+      auditPage: 1, auditPageSize: 10, auditTotal: 0, auditPages: 1,
+      // 登录失败
+      authFailures: [], failUsername: '', failIp: '',
+      failPage: 1, failPageSize: 10, failTotal: 0, failPages: 1,
+      // 用户管理
+      users: [],
+      userPage: 1, userPageSize: 10, userTotal: 0, userPages: 1,
+      // 组织架构
+      orgs: [], departments: [], curOrgId: null,
+      newOrgName: '', newOrgCode: '', newDeptName: '',
+      // 角色权限
+      roles: [], rolePermsMap: {}, permCatalog: [],
+      curRole: '', curPerms: [],
+      newRoleName: '', newRoleLabel: '',
+      roleForm: { display_name: '', level: 10, description: '' },
+      // 用户组织分配弹窗
+      showAssign: false, assignUser: null, assignOrgId: null, assignDeptId: null,
+      // 异步任务
+      asyncTasks: [], newTaskType: 'export_audit',
+      taskTypes: [
+        { key: 'export_audit', label: '导出审计日志到 JSON 文件' },
+        { key: 'cleanup_sessions', label: '清理过期会话' },
+        { key: 'send_notification', label: '发送系统通知（测试）' },
+      ],
+      // 弹窗引用
+      pwModal: null,
+    }),
+    computed: {
+      actionFilterList() {
+        const s = new Set();
+        (this.auditLogs || []).forEach(l => {
+          const base = l.action.split('.').slice(0, 2).join('.');
+          s.add(base);
+        });
+        return Array.from(s).sort();
+      },
+      curOrgDepts() {
+        return this.departments.filter(d => d.org_id === this.curOrgId);
+      },
+      assignDeptOptions() {
+        if (!this.assignOrgId) return [];
+        return this.departments.filter(d => d.org_id === this.assignOrgId);
+      },
+      curRoleData() {
+        return this.roles.find(r => r.name === this.curRole) || {};
+      },
+      curRoleBuiltin() {
+        return !!this.curRoleData.builtin;
+      },
+    },
+    methods: {
+      switchTab(t) { this.tab = t; this.load(); },
+      async load() {
+        // 懒加载：只在切到对应 tab 时请求
+        if (this.tab === 'audit') this.loadAudit();
+        else if (this.tab === 'failures') this.loadFailures();
+        else if (this.tab === 'logs') this.loadLogs();
+        else if (this.tab === 'users') this.loadUsers();
+        else if (this.tab === 'orgs') this.loadOrgs();
+        else if (this.tab === 'roles') this.loadRoles();
+        else if (this.tab === 'tasks') this.loadAsyncTasks();
+      },
+      async _fetch(path, opts) {
+        const init = Object.assign(
+          { headers: { 'Authorization': 'Bearer ' + this.store.auth.token } }, opts || {});
+        if (init.body && typeof init.body !== 'string') {
+          init.body = JSON.stringify(init.body);
+          init.headers = Object.assign({ 'Content-Type': 'application/json' }, init.headers);
+        }
+        const r = await fetch(path, init);
+        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.detail || r.status); }
+        return r.json();
+      },
+      async _send(method, path, body) {
+        return this._fetch(path, { method, body });
+      },
+
+      // ====== 审计导出 ======
+      exportAudit(fmt) {
+        const params = new URLSearchParams({ fmt, limit: 5000 });
+        if (this.auditAction) params.set('action', this.auditAction);
+        const token = this.store.auth.token;
+        fetch('/api/admin/audit/export?' + params, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        }).then(async r => {
+          if (!r.ok) {
+            const j = await r.json().catch(() => ({}));
+            throw new Error(j.detail || r.status);
+          }
+          if (fmt === 'csv') {
+            const blob = await r.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'audit_logs_' + new Date().toISOString().slice(0, 10) + '.csv';
+            a.click();
+            URL.revokeObjectURL(a.href);
+          } else {
+            const data = await r.json();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = (data.filename || 'audit_logs.json');
+            a.click();
+            URL.revokeObjectURL(a.href);
+          }
+          this.store.toast('已导出审计日志（' + fmt.toUpperCase() + '）');
+        }).catch(e => this.store.toast('导出失败: ' + e.message));
+      },
+
+      // ====== 组织架构 ======
+      async loadOrgs() {
+        try {
+          const data = await this._fetch('/api/admin/orgs');
+          this.orgs = data.orgs || [];
+          this.departments = data.departments || [];
+          if (!this.curOrgId && this.orgs.length) this.curOrgId = this.orgs[0].id;
+        } catch (e) { this.store.toast('加载组织失败: ' + e.message); }
+      },
+      selectOrg(id) { this.curOrgId = id; this.newDeptName = ''; },
+      deptName(id) {
+        if (!id) return '—';
+        const d = this.departments.find(x => x.id === id);
+        return d ? d.name : '—';
+      },
+      async createOrg() {
+        const name = (this.newOrgName || '').trim();
+        const code = (this.newOrgCode || '').trim();
+        if (!name || !code) { this.store.toast('请填写组织名称与编码'); return; }
+        try {
+          const r = await this._send('POST', '/api/admin/orgs', { name, code });
+          this.store.toast('已创建组织 ' + name);
+          this.newOrgName = ''; this.newOrgCode = '';
+          await this.loadOrgs();
+          this.curOrgId = r.id || this.curOrgId;
+        } catch (e) { this.store.toast('创建失败: ' + e.message); }
+      },
+      async renameOrg(o) {
+        const name = window.prompt('修改组织名称', o.name);
+        if (name === null) return;
+        try {
+          await this._send('PUT', '/api/admin/orgs/' + o.id, { name: name.trim() });
+          this.store.toast('已更新');
+          await this.loadOrgs();
+        } catch (e) { this.store.toast('更新失败: ' + e.message); }
+      },
+      async deleteOrg(o) {
+        if (!await this.store.confirm(`删除组织「${o.name}」？该组织下不能有部门。`, '删除')) return;
+        try {
+          await this._send('DELETE', '/api/admin/orgs/' + o.id);
+          this.store.toast('已删除');
+          if (this.curOrgId === o.id) this.curOrgId = null;
+          await this.loadOrgs();
+        } catch (e) { this.store.toast('删除失败: ' + e.message); }
+      },
+      async createDept() {
+        if (!this.curOrgId) { this.store.toast('请先选择组织'); return; }
+        const name = (this.newDeptName || '').trim();
+        if (!name) { this.store.toast('请填写部门名称'); return; }
+        try {
+          await this._send('POST', '/api/admin/departments', { org_id: this.curOrgId, name });
+          this.store.toast('已创建部门 ' + name);
+          this.newDeptName = '';
+          await this.loadOrgs();
+        } catch (e) { this.store.toast('创建失败: ' + e.message); }
+      },
+      async renameDept(d) {
+        const name = window.prompt('修改部门名称', d.name);
+        if (name === null || !name.trim()) return;
+        try {
+          await this._send('PUT', '/api/admin/departments/' + d.id, { name: name.trim() });
+          this.store.toast('已更新');
+          await this.loadOrgs();
+        } catch (e) { this.store.toast('更新失败: ' + e.message); }
+      },
+      async deleteDept(d) {
+        if (!await this.store.confirm(`删除部门「${d.name}」？`, '删除')) return;
+        try {
+          await this._send('DELETE', '/api/admin/departments/' + d.id);
+          this.store.toast('已删除');
+          await this.loadOrgs();
+          this.loadUsers();
+        } catch (e) { this.store.toast('删除失败: ' + e.message); }
+      },
+
+      // ====== 角色权限 ======
+      async loadRoles() {
+        try {
+          const [r1, r2, r3] = await Promise.all([
+            this._fetch('/api/admin/roles'),
+            this._fetch('/api/admin/permissions/roles'),
+            this._fetch('/api/admin/permissions/catalog'),
+          ]);
+          this.roles = r1.roles || [];
+          this.rolePermsMap = r2 || {};
+          this.permCatalog = r3.catalog || [];
+          if (!this.curRole && this.roles.length) this.selectRole(this.roles[0].name);
+          else if (this.curRole) this.selectRole(this.curRole);
+        } catch (e) { this.store.toast('加载角色失败: ' + e.message); }
+      },
+      selectRole(name) {
+        this.curRole = name;
+        const r = this.roles.find(x => x.name === name) || {};
+        this.roleForm = {
+          display_name: r.display_name || name,
+          level: r.level != null ? r.level : 10,
+          description: r.description || '',
+        };
+        this.curPerms = (this.rolePermsMap[name] || []).filter(p => p !== '*');
+      },
+      checkAllPerms(on) {
+        this.curPerms = on ? this.permCatalog.map(p => p.key) : [];
+      },
+      async createRole() {
+        const name = (this.newRoleName || '').trim();
+        const label = (this.newRoleLabel || '').trim();
+        if (!name) { this.store.toast('请填写角色标识'); return; }
+        try {
+          await this._send('POST', '/api/admin/roles', { name, display_name: label || name });
+          this.store.toast('已创建角色 ' + name);
+          this.newRoleName = ''; this.newRoleLabel = '';
+          await this.loadRoles();
+          this.selectRole(name);
+        } catch (e) { this.store.toast('创建失败: ' + e.message); }
+      },
+      async saveRoleMeta() {
+        if (!this.curRole) return;
+        try {
+          await this._send('PUT', '/api/admin/roles/' + this.curRole, {
+            display_name: this.roleForm.display_name,
+            level: this.roleForm.level,
+            description: this.roleForm.description,
+          });
+          this.store.toast('角色信息已保存');
+          await this.loadRoles();
+        } catch (e) { this.store.toast('保存失败: ' + e.message); }
+      },
+      async removeRole() {
+        if (!this.curRole) return;
+        if (!await this.store.confirm(`删除角色「${this.curRole}」？该角色下不能有用户。`, '删除')) return;
+        try {
+          await this._send('DELETE', '/api/admin/roles/' + encodeURIComponent(this.curRole));
+          this.store.toast('已删除角色');
+          this.curRole = '';
+          await this.loadRoles();
+          this.loadUsers();
+        } catch (e) { this.store.toast('删除失败: ' + e.message); }
+      },
+      async saveRolePerms() {
+        if (!this.curRole) return;
+        try {
+          const r = await this._send('PUT', '/api/admin/permissions/roles/' +
+            encodeURIComponent(this.curRole), { permissions: this.curPerms });
+          this.store.toast(`已保存 ${r.count} 项权限`);
+          await this.loadRoles();
+        } catch (e) { this.store.toast('保存失败: ' + e.message); }
+      },
+
+      // ====== 异步任务 ======
+      async loadAsyncTasks() {
+        try {
+          const r = await this._fetch('/api/admin/tasks?limit=50');
+          this.asyncTasks = r.tasks || [];
+        } catch (e) { store.toast('加载任务失败: ' + e.message); }
+      },
+      async submitAsync() {
+        try {
+          const r = await this._send('POST', '/api/admin/tasks', { type: this.newTaskType });
+          store.toast('已提交任务 #' + r.task_id + '，worker 会在后台执行');
+          await this.loadAsyncTasks();
+        } catch (e) { store.toast('提交失败: ' + e.message); }
+      },
+      fmtTaskStatus(s) {
+        return { pending: '⏳ 等待中', running: '▶️ 执行中', done: '✅ 完成', failed: '❌ 失败' }[s] || s;
+      },
+
+      // ====== 用户组织分配 ======
+      openAssign(u) {
+        this.assignUser = u;
+        this.assignOrgId = u.org_id || null;
+        this.assignDeptId = u.dept_id || null;
+        this.showAssign = true;
+        if (!this.orgs.length) this.loadOrgs();
+      },
+      async saveAssign() {
+        if (!this.assignUser) return;
+        try {
+          await this._send('PUT', '/api/admin/users/' + this.assignUser.id + '/assign', {
+            org_id: this.assignOrgId, dept_id: this.assignDeptId,
+          });
+          this.store.toast('已更新 ' + this.assignUser.username + ' 的组织归属');
+          this.showAssign = false;
+          await this.loadUsers();
+        } catch (e) { this.store.toast('保存失败: ' + e.message); }
+      },
+
+      async loadLogs() {
+        try {
+          const params = new URLSearchParams({
+            page: this.logPage, page_size: this.logPageSize, limit: 500,
+          });
+          if (this.logLevel) params.set('level', this.logLevel);
+          if (this.logKeyword) params.set('keyword', this.logKeyword);
+          const r = await this._fetch('/api/logs?' + params);
+          if (r.items !== undefined) {
+            this.logs = r.items; this.logTotal = r.total;
+            this.logPage = r.page; this.logPageSize = r.page_size; this.logPages = r.pages;
+          } else { this.logs = r; this.logTotal = r.length; this.logPages = 1; }
+        } catch (e) { this.store.toast('加载日志失败: ' + e.message); }
+      },
+
+      async loadAudit() {
+        try {
+          const params = new URLSearchParams({
+            page: this.auditPage, page_size: this.auditPageSize, limit: 500,
+          });
+          if (this.auditAction) params.set('action', this.auditAction);
+          if (this.auditActor) params.set('actor', this.auditActor);
+          const r = await this._fetch('/api/audit-logs?' + params);
+          if (r.items !== undefined) {
+            this.auditLogs = r.items; this.auditTotal = r.total;
+            this.auditPage = r.page; this.auditPageSize = r.page_size; this.auditPages = r.pages;
+          } else { this.auditLogs = r; this.auditTotal = r.length; this.auditPages = 1; }
+        } catch (e) { this.store.toast('加载审计失败: ' + e.message); }
+      },
+
+      async loadFailures() {
+        try {
+          const params = new URLSearchParams({
+            page: this.failPage, page_size: this.failPageSize, limit: 500,
+          });
+          if (this.failUsername) params.set('username', this.failUsername);
+          if (this.failIp) params.set('ip', this.failIp);
+          const r = await this._fetch('/api/auth-failures?' + params);
+          if (r.items !== undefined) {
+            this.authFailures = r.items; this.failTotal = r.total;
+            this.failPage = r.page; this.failPageSize = r.page_size; this.failPages = r.pages;
+          } else { this.authFailures = r; this.failTotal = r.length; this.failPages = 1; }
+        } catch (e) { this.store.toast('加载失败记录: ' + e.message); }
+      },
+
+      async loadUsers() {
+        try {
+          const list = await this._fetch('/api/users');
+          this.userTotal = list.length;
+          this.userPages = Math.max(1, Math.ceil(list.length / this.userPageSize));
+          const start = (this.userPage - 1) * this.userPageSize;
+          const pageList = list.slice(start, start + this.userPageSize);
+          this.users = pageList.map(u => ({
+            ...u, locked: !!u.locked, created_at: u.created_at || '',
+            org_id: u.org_id || null, dept_id: u.dept_id || null,
+          }));
+        } catch (e) { this.store.toast('加载用户失败: ' + e.message); }
+      },
+
+      // ====== 分页通用方法 ======
+      gotoPage(which, page) {
+        const m = { audit: 'auditPage', failures: 'failPage', logs: 'logPage', users: 'userPage' };
+        this[m[which]] = Math.max(1, page);
+        if (which === 'audit') this.loadAudit();
+        else if (which === 'failures') this.loadFailures();
+        else if (which === 'logs') this.loadLogs();
+        else if (which === 'users') this.loadUsers();
+      },
+      changePageSize(which, size) {
+        const m = { audit: 'auditPageSize', failures: 'failPageSize', logs: 'logPageSize', users: 'userPageSize' };
+        this[m[which]] = size;
+        this.gotoPage(which, 1);
+      },
+      pageButtons(which) {
+        const pages = { audit: this.auditPages, failures: this.failPages, logs: this.logPages, users: this.userPages }[which];
+        const cur = { audit: this.auditPage, failures: this.failPage, logs: this.logPage, users: this.userPage }[which];
+        if (!pages || pages <= 1) return [cur];
+        const btns = [];
+        let start = Math.max(1, cur - 2);
+        let end = Math.min(pages, start + 4);
+        start = Math.max(1, end - 4);
+        if (start > 1) btns.push(1);
+        if (start > 2) btns.push('…');
+        for (let i = start; i <= end; i++) btns.push(i);
+        if (end < pages - 1) btns.push('…');
+        if (end < pages) btns.push(pages);
+        return btns;
+      },
+
+      // ====== 二次验证操作 ======
+      async _showPwModal(desc) {
+        // 找全局挂的 password-modal 组件（如果有），否则返回 null 让调用方用 confirm
+        const modal = this.$root.$children.find(c => c.$options && c.$options.name === 'password-modal')
+                   || (this.$parent && this.$parent.$children.find(c => c.visible !== undefined && c.password !== undefined));
+        if (modal && typeof modal.open === 'function') {
+          return await modal.open(desc);
+        }
+        // 兜底：用 confirm-modal + 让用户手动输密码（不优雅但能用）
+        // 实际上更好的做法是在 app-main 里直接挂一个 password-modal 实例
+        this.store.toast('二次验证弹窗未就绪');
+        return null;
+      },
+
+      async forceLogout(u) {
+        const pwd = await this._promptPassword(`强制下线用户 "${u.username}"（ID ${u.id}）需要密码确认`);
+        if (!pwd) return;
+        try {
+          await fetch(`/api/users/${u.id}/force-logout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.store.auth.token },
+            body: JSON.stringify({ password: pwd }),
+          });
+          this.store.toast(`已强制下线 ${u.username}`);
+          this.loadAudit(); this.loadUsers();
+        } catch (e) {
+          const j = await e.json?.().catch(() => ({})) || {};
+          this.store.toast('操作失败: ' + (j.detail || e.message));
+        }
+      },
+
+      async toggleUser(u, enabled) {
+        const pwd = await this._promptPassword(`${enabled ? '启用' : '禁用'}用户 "${u.username}" 需要密码确认`);
+        if (!pwd) return;
+        try {
+          await fetch(`/api/users/${u.id}/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.store.auth.token },
+            body: JSON.stringify({ password: pwd, enabled }),
+          });
+          this.store.toast(`已${enabled ? '启用' : '禁用'} ${u.username}`);
+          this.loadUsers();
+        } catch (e) {
+          const j = await e.json?.().catch(() => ({})) || {};
+          this.store.toast('操作失败: ' + (j.detail || e.message));
+        }
+      },
+
+      // 兜底密码输入：用 confirm-modal + 让用户在密码框里输（其实是复用 password-modal）
+      async _promptPassword(desc) {
+        // 找全局挂载的 password-modal
+        let modal = null;
+        const walk = (c) => {
+          if (c.$options && c.$options.template && c.$options.template.includes('tpl-password-modal')) modal = c;
+          c.$children?.forEach(walk);
+        };
+        walk(this.$root);
+        if (!modal) {
+          this.store.toast('密码弹窗组件未找到');
+          return null;
+        }
+        return await modal.open(desc);
+      }
+    },
+    mounted() {
+      // 首次进入审计页时自动加载
+      // 注意：v-show 只是隐藏不销毁，mounted 只跑一次，所以 load 在 switchTab 里也会触发
     }
   });
 
@@ -3031,6 +6000,31 @@
     template: '#tpl-toast-box',
     data: () => ({ store })
   });
+
+  // ====== 启动时从 localStorage 恢复登录态 ======
+  (function restoreAuth() {
+    try {
+      const t = localStorage.getItem('rag_token');
+      const u = localStorage.getItem('rag_user');
+      if (t && u) {
+        store.auth.token = t;
+        store.auth.user = JSON.parse(u);
+        store.auth.loggedIn = true;
+        window.__authToken = t;
+        // 恢复后做一次 token 有效性检查
+        fetch('/api/auth/me', { headers: { Authorization: `Bearer ${t}` } })
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(data => {
+            store.auth.user = { id: data.user_id, username: data.username, role: data.role };
+          })
+          .catch(() => {
+            // token 过期 → 清掉，跳回登录
+            store.auth.token = null; store.auth.user = null; store.auth.loggedIn = false;
+            localStorage.removeItem('rag_token'); localStorage.removeItem('rag_user');
+          });
+      }
+    } catch(e) {}
+  })();
 
   app.mount('#app');
   </script>
