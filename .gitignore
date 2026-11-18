@@ -45,3 +45,16 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# 临时调试产物
+_backend_log.txt
+_backend_err.txt
+_backend.log
+_backend_err.log
+_server.log
+_*.log
+_*.txt
+_test_*.py
+_sep_trace.py
+_create_db.py
+_inventory.py

@@ -1,9 +1,0 @@
-19:21:36 [INFO   ] Tracing disabled (TRACING_ENABLED=False)
-19:21:36 [INFO   ] Creating tables (if not exist)...
-19:21:36 [INFO   ] Tables ensured.
-19:21:36 [INFO   ] PostgreSQL ORM initialized (26 tables)
-19:21:36 [INFO   ] Application startup complete (env=dev)
-19:21:36 [INFO   ] Async worker loop started
-19:21:36 [INFO   ] APScheduler started (health=5m, cleanup=30m)
-19:21:36 [INFO   ] Async worker started (concurrency=4)
-INFO:     127.0.0.1:12466 - "POST /api/kb/preview HTTP/1.1" 401 Unauthorized
