@@ -1143,6 +1143,16 @@ async def kb_health(_admin: dict = Depends(require_role("admin"))):
     return out
 
 
+@app.post("/api/kb/preview")
+async def kb_preview(payload: dict, _admin: dict = Depends(require_role("admin"))):
+    """前端上传弹窗实时预览：接收文本 + chunk_config → 返回切分结构"""
+    from core.parser import preview_chunks
+    text = payload.get("text", "")
+    chunk_config = payload.get("chunk_config") or {}
+    preprocess_rules = payload.get("preprocess_rules") or {}
+    return preview_chunks(text, chunk_config, preprocess_rules)
+
+
 # ---------- 图片知识库 ----------
 @app.post("/api/upload_image")
 async def upload_image(file: UploadFile = File(...), kb_id: str = Form("default"), _admin: dict = Depends(require_role("admin"))):

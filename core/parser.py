@@ -1498,6 +1498,179 @@ def layout_chunks_to_records(chunks, chunk_config=None):
 
 
 # =====================================================================
+# 实时预览（前端上传弹窗用，不写文件不持久化，纯内存模拟切分）
+# =====================================================================
+
+def preview_chunks(text, chunk_config=None, preprocess_rules=None, max_preview_blocks=80):
+    """接收原始文本 + chunk_config → 返回前端预览需要的结构
+
+    Args:
+        text: 原始文本（已从文件读取）
+        chunk_config: 归一化前或后的 chunk_config dict
+        preprocess_rules: dict[str, bool] 预处理规则开关
+        max_preview_blocks: 最多预览多少个 block（防止超大文件卡前端）
+
+    Returns:
+        {
+            mode: "general" | "parent_child",
+            stats: { total_blocks, avg_length, total_chars },
+            blocks: [...],                    # 通用模式：flat 列表
+            parents: [...],                   # 父子模式：父块 + 子块层级
+        }
+    """
+    if not text or not text.strip():
+        return {"mode": "general", "stats": {"total_blocks": 0, "avg_length": 0, "total_chars": 0},
+                "blocks": [], "parents": [], "error": "文件为空"}
+
+    # 1) 预处理
+    rules = preprocess_rules or {}
+    if any(rules.values()):
+        text = preprocess_text(text, rules if rules else None)
+    text = text.strip()
+
+    cfg = _normalize_chunk_config(chunk_config or {})
+    mode = cfg["mode"]
+
+    if mode == "general":
+        sep = cfg.get("separator") or None
+        max_len = cfg["max_length"]
+        overlap = cfg.get("overlap", 50)
+
+        # 用 separator 先拆大段
+        sep_re = _compile_separator(sep) if sep else None
+        if sep_re:
+            raw_parts = [p.strip() for p in sep_re.split(text) if p.strip()]
+        else:
+            raw_parts = [text]
+
+        blocks = []
+        for part in raw_parts:
+            if len(part) <= max_len:
+                blocks.append(part)
+            else:
+                sub = _split_parent_into_children(part, max_len, overlap, child_sep=sep)
+                blocks.extend(sub)
+
+        # 截断
+        total = len(blocks)
+        preview_blocks = blocks[:max_preview_blocks]
+        if len(blocks) > max_preview_blocks:
+            tail_omitted = len(blocks) - max_preview_blocks
+        else:
+            tail_omitted = 0
+
+        char_total = sum(len(b) for b in blocks)
+        avg = round(char_total / total) if total else 0
+
+        return {
+            "mode": "general",
+            "stats": {"total_blocks": total, "avg_length": avg, "total_chars": char_total},
+            "blocks": [{"index": i + 1, "text": b, "length": len(b)} for i, b in enumerate(preview_blocks)],
+            "parents": [],
+            "tail_omitted": tail_omitted,
+        }
+
+    # ========== 父子模式 ==========
+    child_size = cfg["child_max_length"]
+    child_sep = cfg.get("child_separator") or None
+    parent_strategy = cfg.get("parent_strategy", "paragraph")
+    parent_sep = cfg.get("parent_separator") or None
+    parent_max_len = cfg.get("parent_max_length", 1024)
+
+    parents_out = []
+
+    if parent_strategy == "document":
+        # 全文模式：整篇 = 1 个父块
+        parent_text = text
+        children = _split_parent_into_children(parent_text, child_size, 0, child_sep=child_sep)
+        preview_children = children[:max_preview_blocks]
+        parents_out.append({
+            "index": 1,
+            "parent_text": parent_text[:2000] + ("..." if len(parent_text) > 2000 else ""),
+            "length": len(parent_text),
+            "children": [{"child_index": i + 1, "text": c, "length": len(c)}
+                         for i, c in enumerate(preview_children)],
+            "total_children": len(children),
+        })
+    else:
+        # 段落模式：parent_separator 先拆父块
+        if parent_sep:
+            sep_re = _compile_separator(parent_sep)
+            raw_parents = [p.strip() for p in sep_re.split(text) if p.strip()]
+        else:
+            # 没填 parent_separator → 按空行 + heading 启发式拆
+            raw_parents = _heuristic_split_parents(text, parent_max_len)
+
+        for pi, parent_text in enumerate(raw_parents):
+            if len(parents_out) >= max_preview_blocks:
+                break
+            if not parent_text.strip():
+                continue
+            children = _split_parent_into_children(parent_text, child_size, 0, child_sep=child_sep)
+            preview_children = children[:max_preview_blocks]
+            parents_out.append({
+                "index": pi + 1,
+                "parent_text": parent_text[:2000] + ("..." if len(parent_text) > 2000 else ""),
+                "length": len(parent_text),
+                "children": [{"child_index": i + 1, "text": c, "length": len(c)}
+                             for i, c in enumerate(preview_children)],
+                "total_children": len(children),
+            })
+
+    total_parents = len(parents_out)
+    total_children = sum(p["total_children"] for p in parents_out)
+    parent_avg = round(sum(p["length"] for p in parents_out) / total_parents) if total_parents else 0
+
+    return {
+        "mode": "parent_child",
+        "stats": {
+            "total_parents": total_parents,
+            "total_children": total_children,
+            "avg_parent_length": parent_avg,
+            "avg_child_length": round(
+                sum(len(c["text"]) for p in parents_out for c in p["children"]) / max(total_children, 1)
+            ) if total_children else 0,
+            "total_chars": sum(p["length"] for p in parents_out),
+        },
+        "blocks": [],
+        "parents": parents_out,
+        "tail_omitted": 0,
+    }
+
+
+def _heuristic_split_parents(text, target_len=1024):
+    """没填 parent_separator 时的启发式父块切分：按 \n\n 和 heading 边界"""
+    if len(text) <= target_len:
+        return [text]
+
+    # 先按 \n\n 拆段落
+    paragraphs = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip()]
+    if not paragraphs:
+        return [text]
+
+    parents = []
+    cur = []
+    cur_len = 0
+    for para in paragraphs:
+        # 遇到 heading 且当前块已有内容 → 切新父块
+        if cur and _looks_like_heading(para.split('\n')[0].strip()) and cur_len >= target_len * 0.5:
+            parents.append("\n\n".join(cur))
+            cur = [para]
+            cur_len = len(para)
+        elif cur_len + len(para) > target_len and cur:
+            parents.append("\n\n".join(cur))
+            cur = [para]
+            cur_len = len(para)
+        else:
+            cur.append(para)
+            cur_len += len(para)
+
+    if cur:
+        parents.append("\n\n".join(cur))
+    return parents
+
+
+# =====================================================================
 # 工具函数
 # =====================================================================
 

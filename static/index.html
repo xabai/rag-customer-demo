@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -417,6 +417,155 @@
   .modal .pp-text small { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
   .upload-tab { padding: 8px 16px; cursor: pointer; font-size: 13px; border-bottom: 2px solid transparent; color: var(--text-sub); transition: all .15s; }
   .upload-tab.active { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+  /* ==================================================================
+   *  上传文档 Drawer（左右分栏 1200px）—— 重构版
+   * ================================================================== */
+  .up-mask { position: fixed; inset: 0; background: rgba(2,6,23,.6); backdrop-filter: blur(4px); z-index: 1000; animation: fadeIn .18s ease; display: flex; justify-content: flex-end; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .up-drawer { width: min(1200px, 96vw); height: 100vh; background: var(--bg); border-left: 1px solid var(--border); display: flex; flex-direction: column; animation: slideIn .22s cubic-bezier(.22,.61,.36,1); box-shadow: -24px 0 60px rgba(0,0,0,.35); }
+
+  /* Header（sticky） */
+  .up-header { flex-shrink: 0; height: 56px; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--bg); gap: 16px; }
+  .up-header .up-title { font-size: 15px; font-weight: 600; color: var(--text-h); }
+  .up-header .up-close { margin-left: auto; width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; color: var(--text-sub); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .up-header .up-close:hover { background: var(--bg-soft); color: var(--text); }
+  .up-header .up-kb-select { height: 30px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-soft); color: var(--text); font-size: 12px; padding: 0 8px; outline: none; }
+  .up-header .up-kb-select:focus { border-color: var(--accent); }
+
+  /* Body（左右分栏可滚动） */
+  .up-body { flex: 1; display: flex; min-height: 0; }
+  .up-left { width: 480px; flex-shrink: 0; overflow-y: auto; border-right: 1px solid var(--border); padding: 20px; }
+  .up-right { flex: 1; overflow-y: auto; padding: 20px; min-width: 0; }
+
+  /* Section header（配置区分组） */
+  .up-section { margin-bottom: 24px; }
+  .up-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .up-section-title { font-size: 13px; font-weight: 600; color: var(--text-h); letter-spacing: .02em; }
+  .up-section-title .up-section-num { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 4px; background: rgba(14,165,233,.15); color: var(--accent); font-size: 10px; font-weight: 700; margin-right: 8px; }
+  .up-section-toggle { font-size: 11px; color: var(--text-dim); cursor: pointer; user-select: none; padding: 2px 6px; border-radius: 4px; }
+  .up-section-toggle:hover { background: var(--bg-soft); color: var(--text-sub); }
+
+  /* Segmented Control（替代 tab） */
+  .up-segment { display: inline-flex; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; padding: 3px; gap: 2px; }
+  .up-segment button { border: none; background: transparent; color: var(--text-sub); font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: all .15s; }
+  .up-segment button.active { background: var(--card); color: var(--text-h); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .up-segment button:not(.active):hover { color: var(--text); }
+
+  /* File chip */
+  .up-files-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .up-file-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 12px; color: var(--text); }
+  .up-file-chip .up-fname { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .up-file-chip .up-fsize { color: var(--text-dim); font-size: 11px; }
+  .up-file-chip .up-fdel { color: var(--text-dim); cursor: pointer; font-size: 14px; padding: 0 2px; }
+  .up-file-chip .up-fdel:hover { color: var(--red); }
+
+  /* 模式卡片 2 选 1 */
+  .up-mode-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+  .up-mode-card { border: 1.5px solid var(--border); border-radius: 10px; padding: 14px; cursor: pointer; transition: all .15s; background: var(--bg); }
+  .up-mode-card:hover { border-color: rgba(14,165,233,.35); }
+  .up-mode-card.active { border-color: var(--accent); background: rgba(14,165,233,.06); box-shadow: 0 0 0 3px rgba(14,165,233,.12); }
+  .up-mode-card .up-mc-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .up-mode-card .up-mc-icon { font-size: 16px; }
+  .up-mode-card .up-mc-title { font-size: 13px; font-weight: 600; color: var(--text-h); }
+  .up-mode-card .up-mc-badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: rgba(14,165,233,.15); color: var(--accent); margin-left: auto; }
+  .up-mode-card .up-mc-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+
+  /* 详细配置分组（父子/通用 展开） */
+  .up-detail { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .up-detail-group { margin-bottom: 14px; }
+  .up-detail-group-title { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .up-detail-group-title::before { content: ""; width: 3px; height: 12px; border-radius: 2px; background: var(--accent); opacity: .7; }
+
+  /* InputNumber + Stepper（替换 slider） */
+  .up-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .up-input-row .up-label { flex: 0 0 90px; font-size: 12px; color: var(--text-sub); }
+  .up-number { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-soft); overflow: hidden; }
+  .up-number button { width: 28px; height: 28px; border: none; background: transparent; color: var(--text-sub); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: background .1s; }
+  .up-number button:hover:not(:disabled) { background: rgba(14,165,233,.1); color: var(--accent); }
+  .up-number button:disabled { opacity: .4; cursor: not-allowed; }
+  .up-number input { width: 60px; height: 28px; border: none; border-left: 1px solid var(--border); border-right: 1px solid var(--border); background: transparent; color: var(--text-h); font-size: 13px; font-family: Consolas, monospace; text-align: center; outline: none; }
+  .up-number input::-webkit-outer-spin-button,
+  .up-number input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .up-range-hint { font-size: 11px; color: var(--text-dim); }
+  .up-text-input { flex: 1; height: 28px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-soft); color: var(--text-h); font-size: 13px; padding: 0 10px; outline: none; min-width: 0; }
+  .up-text-input:focus { border-color: var(--accent); }
+  .up-inline-error { font-size: 11px; color: #ef4444; margin-top: 4px; padding-left: 90px; }
+  .up-inline-info { font-size: 11px; color: var(--accent); margin-top: 4px; padding-left: 90px; }
+
+  /* 预处理 2 列 grid（紧凑 toggle） */
+  .up-pp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .up-pp-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: all .12s; }
+  .up-pp-item:hover { border-color: rgba(14,165,233,.3); }
+  .up-pp-item input[type="checkbox"] { display: none; }
+  .up-pp-switch { position: relative; width: 30px; height: 16px; background: #cbd5e1; border-radius: 8px; flex-shrink: 0; transition: background .15s; }
+  .up-pp-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; background: #fff; border-radius: 50%; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+  .up-pp-item input:checked + .up-pp-switch { background: var(--accent, #0ea5e9); }
+  .up-pp-item input:checked + .up-pp-switch::after { transform: translateX(14px); }
+  .up-pp-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .up-pp-text b { font-size: 12px; color: var(--text-h); font-weight: 600; line-height: 1.3; }
+  .up-pp-text small { font-size: 10px; color: var(--text-dim); line-height: 1.3; }
+
+  /* ======= 右侧预览区 ======= */
+  .up-preview-header { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .up-preview-title { font-size: 13px; font-weight: 600; color: var(--text-h); display: flex; align-items: center; gap: 8px; }
+  .up-preview-title .up-badge { font-size: 10px; padding: 1px 8px; border-radius: 10px; background: rgba(14,165,233,.15); color: var(--accent); font-weight: 500; }
+  .up-stats-bar { display: flex; gap: 12px; flex-wrap: wrap; }
+  .up-stat-chip { display: inline-flex; align-items: baseline; gap: 4px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; }
+  .up-stat-chip .up-sc-num { font-size: 16px; font-weight: 700; color: var(--text-h); font-family: Consolas, monospace; }
+  .up-stat-chip .up-sc-label { font-size: 11px; color: var(--text-dim); }
+  .up-stat-chip.up-parent .up-sc-num { color: var(--accent); }
+  .up-stat-chip.up-child .up-sc-num { color: #a78bfa; }
+
+  /* 父块卡片 */
+  .up-pblock { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+  .up-pblock-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(14,165,233,.08); border-bottom: 1px solid var(--border); }
+  .up-pblock-tag { font-size: 11px; font-weight: 600; color: var(--accent); background: rgba(14,165,233,.15); padding: 1px 8px; border-radius: 4px; }
+  .up-pblock-idx { font-size: 13px; font-weight: 600; color: var(--text-h); }
+  .up-pblock-len { font-size: 11px; color: var(--text-dim); margin-left: auto; font-family: Consolas, monospace; }
+  .up-pblock-text { font-size: 12px; color: var(--text-sub); padding: 8px 14px; line-height: 1.6; border-bottom: 1px dashed var(--border); background: var(--bg); }
+  .up-cblocks { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .up-cblock { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 12px; color: var(--text); line-height: 1.55; position: relative; }
+  .up-cblock-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .up-cblock-idx { font-size: 10px; font-weight: 600; color: #a78bfa; background: rgba(139,92,246,.12); padding: 1px 6px; border-radius: 3px; font-family: Consolas, monospace; }
+  .up-cblock-len { font-size: 10px; color: var(--text-dim); font-family: Consolas, monospace; }
+
+  /* 通用 flat 块 */
+  .up-fblock { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; color: var(--text); line-height: 1.6; position: relative; }
+  .up-fblock-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .up-fblock-idx { font-size: 11px; font-weight: 600; color: var(--accent); background: rgba(14,165,233,.12); padding: 1px 7px; border-radius: 4px; font-family: Consolas, monospace; }
+  .up-fblock-len { font-size: 11px; color: var(--text-dim); font-family: Consolas, monospace; }
+
+  /* 空态 / Loading / 错误态 */
+  .up-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; color: var(--text-dim); text-align: center; }
+  .up-empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .6; }
+  .up-empty-title { font-size: 14px; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; }
+  .up-empty-desc { font-size: 12px; max-width: 280px; line-height: 1.5; }
+  .up-empty.error .up-empty-icon { color: var(--red); opacity: .9; }
+  .up-loading { display: flex; align-items: center; justify-content: center; padding: 80px 20px; color: var(--text-sub); gap: 12px; font-size: 13px; }
+  .up-spinner { width: 22px; height: 22px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Footer（固定底栏） */
+  .up-footer { flex-shrink: 0; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-top: 1px solid var(--border); background: var(--bg); }
+  .up-footer-left { font-size: 11px; color: var(--orange); display: flex; align-items: center; gap: 6px; }
+  .up-footer-left .up-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--orange); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+  .up-footer-left.empty { visibility: hidden; }
+  .up-footer-right { display: flex; gap: 8px; }
+  .up-btn-ghost { height: 34px; padding: 0 16px; border: 1px solid var(--border); background: transparent; border-radius: 6px; color: var(--text-sub); font-size: 13px; cursor: pointer; transition: all .12s; }
+  .up-btn-ghost:hover { border-color: var(--text-sub); color: var(--text); }
+  .up-btn-primary { height: 34px; padding: 0 18px; border: none; border-radius: 6px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .12s; display: inline-flex; align-items: center; gap: 6px; }
+  .up-btn-primary:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 4px 12px rgba(14,165,233,.3); }
+  .up-btn-primary:disabled { opacity: .5; cursor: wait; }
+
+  /* 折叠 section 视觉 */
+  .up-section.collapsed .up-section-body { display: none; }
+  .up-section.collapsed .up-section-toggle::before { content: "▸ "; }
+  .up-section:not(.collapsed) .up-section-toggle::before { content: "▾ "; }
+
+  /* 全局关闭时遮罩点击拦截 dirty 确认的 modal 保持原样 */
 
   /* ========== 知识库管理视图（二级子菜单 + 内容区） ========== */
   #kb-view { overflow-y: auto; }
@@ -1685,194 +1834,292 @@
     </div>
   </script>
 
-  <!-- 上传弹窗（本地文件 / 从 URL 导入） -->
+  <!-- 上传文档（左右分栏 Drawer · 重构版） -->
   <script type="text/x-template" id="tpl-upload-modal">
-    <div class="modal-mask">
-      <div class="modal">
-        <h3>上传文档</h3>
-        <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px;">
-          <div class="upload-tab" :class="{ active: tab === 'file' }" @click="tab = 'file'">本地文件</div>
-          <div class="upload-tab" :class="{ active: tab === 'url' }" @click="tab = 'url'">从 URL 导入</div>
-        </div>
-
-        <!-- 本地文件页签 -->
-        <div v-show="tab === 'file'">
-          <div class="field">
-            <label>待上传文件</label>
-            <div id="upload-file-names" style="font-size:13px;color:var(--text);background:var(--bg-soft);border-radius:8px;padding:10px 12px;max-height:100px;overflow-y:auto;">
-              <div v-if="!files.length" style="color:var(--text-dim);">尚未选择文件，可点击下方「本地文件」页签或拖拽到上传区域选择</div>
-              <div v-for="(f, i) in files" :key="i">📄 {{ f.name }} <span style="color:var(--text-dim);">({{ fmtSize(f) }})</span></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- URL 导入页签 -->
-        <div v-show="tab === 'url'">
-          <div class="field">
-            <label>网页地址 <span style="color:#ef4444">*</span></label>
-            <input type="text" v-model="url" placeholder="https://example.com/docs/page" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
-          </div>
-          <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">抓取网页正文并自动切分入库，适合导入在线文档、帮助中心页面。</div>
-        </div>
-
-        <div class="field">
-          <label>目标知识库</label>
-          <select v-model="targetKb" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
+    <div class="up-mask" @click.self="handleMaskClick">
+      <div class="up-drawer" role="dialog" aria-modal="true">
+        <!-- ===== Header ===== -->
+        <div class="up-header">
+          <div class="up-title">上传文档</div>
+          <select v-model="targetKb" class="up-kb-select">
             <option value="default">默认知识库</option>
             <option v-for="kb in store.kbList" :key="kb.id" :value="kb.id">{{ kb.name }}</option>
           </select>
+          <button class="up-close" @click="handleClose" aria-label="关闭">×</button>
         </div>
-        <div class="field">
-          <label>分块模式 <span style="color:var(--text-dim);font-weight:normal;">（二选一）</span></label>
-          <div style="display:flex;gap:12px;margin-top:8px;">
-            <!-- ===== ① 通用分段 ===== -->
-            <div @click="chunkMode = 'general'"
-                 :style="['chunk-card', chunkMode === 'general' ? 'chunk-card-active' : '']">
-              <div class="chunk-card-head">
-                <input type="radio" :name="'chunk-mode-'+uid" :value="'general'" v-model="chunkMode">
-                <span class="chunk-card-icon">📄</span>
-                <span class="chunk-card-title">通用分段</span>
+
+        <!-- ===== Body ===== -->
+        <div class="up-body">
+          <!-- ============ 左侧配置区 480px ============ -->
+          <div class="up-left">
+            <!-- Section ① 来源 -->
+            <div class="up-section">
+              <div class="up-section-head">
+                <div class="up-section-title"><span class="up-section-num">1</span>来源</div>
               </div>
-              <div class="chunk-card-desc">简单按标识符或长度切单层，检索和生成都用同一块</div>
-              <template v-if="chunkMode === 'general'">
-                <div class="chunk-card-param">
-                  <label>分段标识符</label>
-                  <input type="text" v-model="gSeparator" placeholder="例如 \\n\\n 或 --- （留空=按空行/句号自动切）">
+              <div class="up-section-body">
+                <div class="up-segment">
+                  <button :class="{active: tab==='file'}" @click="switchTab('file')">本地文件</button>
+                  <button :class="{active: tab==='url'}" @click="switchTab('url')">从 URL 导入</button>
                 </div>
-                <div class="chunk-card-param">
-                  <label>分段最大长度</label>
-                  <input type="range" min="100" max="1500" step="50" v-model="gMaxLen">
-                  <span class="range-val">{{ gMaxLen }}</span>
+                <div v-if="tab==='file' && files.length" style="margin-top:10px;">
+                  <div class="up-files-row">
+                    <div v-for="(f,i) in files" :key="i" class="up-file-chip">
+                      📄 <span class="up-fname">{{ f.name }}</span>
+                      <span class="up-fsize">{{ fmtSize(f) }}</span>
+                      <span class="up-fdel" @click="removeFile(i)">×</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="chunk-card-param">
-                  <label>分段重叠长度</label>
-                  <input type="range" min="0" max="200" step="10" v-model="gOverlap">
-                  <span class="range-val">{{ gOverlap }}</span>
+                <div v-if="tab==='url'" style="margin-top:10px;">
+                  <input class="up-text-input" v-model="url" placeholder="https://example.com/docs/page" />
                 </div>
-              </template>
+              </div>
             </div>
 
-            <!-- ===== ② 父子分段 ===== -->
-            <div @click="chunkMode = 'parent_child'"
-                 :style="['chunk-card', chunkMode === 'parent_child' ? 'chunk-card-active' : '']">
-              <div class="chunk-card-head">
-                <input type="radio" :name="'chunk-mode-'+uid" :value="'parent_child'" v-model="chunkMode">
-                <span class="chunk-card-icon">🗂️</span>
-                <span class="chunk-card-title">父子分段</span>
-                <span style="font-size:11px;color:var(--accent);margin-left:auto;">推荐</span>
+            <!-- Section ② 分块模式 -->
+            <div class="up-section">
+              <div class="up-section-head">
+                <div class="up-section-title"><span class="up-section-num">2</span>分块模式</div>
               </div>
-              <div class="chunk-card-desc">子块做向量检索 → 命中后取父块喂模型，精度 + 上下文兼得</div>
-              <template v-if="chunkMode === 'parent_child'">
-                <!-- 父块策略：段落模式 vs 全文模式 -->
-                <div class="chunk-card-param">
-                  <label>父块用作上下文：</label>
-                  <div style="display:flex;gap:16px;margin-top:6px;">
-                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
-                      <input type="radio" :name="'parent-strat-'+uid" value="paragraph" v-model="parentStrategy">
-                      段落模式
-                    </label>
-                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;">
-                      <input type="radio" :name="'parent-strat-'+uid" value="document" v-model="parentStrategy">
-                      全文模式（整篇 = 1 个父块）
-                    </label>
+              <div class="up-section-body">
+                <div class="up-mode-cards">
+                  <div class="up-mode-card" :class="{active: chunkMode==='general'}" @click="chunkMode='general'">
+                    <div class="up-mc-head">
+                      <span class="up-mc-icon">📄</span>
+                      <span class="up-mc-title">通用分段</span>
+                    </div>
+                    <div class="up-mc-desc">单层切分，简单直接，检索和生成都用同一块</div>
+                  </div>
+                  <div class="up-mode-card" :class="{active: chunkMode==='parent_child'}" @click="chunkMode='parent_child'">
+                    <div class="up-mc-head">
+                      <span class="up-mc-icon">🗂️</span>
+                      <span class="up-mc-title">父子分段</span>
+                      <span class="up-mc-badge">推荐</span>
+                    </div>
+                    <div class="up-mc-desc">子块做向量检索，命中后取父块喂模型</div>
                   </div>
                 </div>
 
-                <!-- 段落模式才显示父块分隔符 + 父块最大长度 -->
-                <template v-if="parentStrategy === 'paragraph'">
-                  <div class="chunk-card-param">
-                    <label>父块分隔符</label>
-                    <input type="text" v-model="pSeparator" placeholder="例如 $$$ 或 =+=+ （留空=按空行/heading 自动切）">
+                <!-- 通用模式展开 -->
+                <div v-if="chunkMode==='general'" class="up-detail">
+                  <div class="up-detail-group">
+                    <div class="up-detail-group-title">切分配置</div>
+                    <div class="up-input-row">
+                      <label class="up-label">分隔符</label>
+                      <input class="up-text-input" v-model="gSeparator" placeholder="留空=按空行/句号自动切" />
+                    </div>
+                    <div class="up-input-row">
+                      <label class="up-label">最大长度</label>
+                      <div class="up-number">
+                        <button @click="step('gMaxLen', -50)">−</button>
+                        <input type="number" v-model.number="gMaxLen" min="100" max="1500" step="50" />
+                        <button @click="step('gMaxLen', 50)">+</button>
+                      </div>
+                      <span class="up-range-hint">100–1500</span>
+                    </div>
+                    <div class="up-input-row">
+                      <label class="up-label">重叠长度</label>
+                      <div class="up-number">
+                        <button @click="step('gOverlap', -10)">−</button>
+                        <input type="number" v-model.number="gOverlap" min="0" max="200" step="10" />
+                        <button @click="step('gOverlap', 10)">+</button>
+                      </div>
+                      <span class="up-range-hint">0–200</span>
+                    </div>
+                    <div v-if="overlapError" class="up-inline-error">⚠ overlap 不能 ≥ 最大长度</div>
                   </div>
-                  <div class="chunk-card-param">
-                    <label>父块最大长度</label>
-                    <input type="range" min="500" max="5000" step="200" v-model="pMaxLen">
-                    <span class="range-val">{{ pMaxLen }}</span>
-                  </div>
-                </template>
+                </div>
 
-                <!-- 全文模式提示 -->
+                <!-- 父子模式展开 -->
+                <div v-else class="up-detail">
+                  <div class="up-detail-group">
+                    <div class="up-detail-group-title">父块（用作上下文）</div>
+                    <div class="up-input-row">
+                      <label class="up-label">策略</label>
+                      <div class="up-segment">
+                        <button :class="{active: parentStrategy==='paragraph'}" @click="parentStrategy='paragraph'">段落模式</button>
+                        <button :class="{active: parentStrategy==='document'}" @click="parentStrategy='document'">全文模式</button>
+                      </div>
+                    </div>
+                    <template v-if="parentStrategy==='paragraph'">
+                      <div class="up-input-row">
+                        <label class="up-label">分隔符</label>
+                        <input class="up-text-input" v-model="pSeparator" placeholder="留空=按空行/heading 自动切" />
+                      </div>
+                      <div class="up-input-row">
+                        <label class="up-label">最大长度</label>
+                        <div class="up-number">
+                          <button @click="step('pMaxLen', -200)">−</button>
+                          <input type="number" v-model.number="pMaxLen" min="500" max="5000" step="200" />
+                          <button @click="step('pMaxLen', 200)">+</button>
+                        </div>
+                        <span class="up-range-hint">500–5000</span>
+                      </div>
+                    </template>
+                    <div v-else class="up-inline-info">ℹ 整篇文档 = 1 个父块（命中子块时把全文喂给模型）</div>
+                  </div>
+                  <div class="up-detail-group">
+                    <div class="up-detail-group-title">子块（用于检索）</div>
+                    <div class="up-input-row">
+                      <label class="up-label">分隔符</label>
+                      <input class="up-text-input" v-model="cSeparator" placeholder="留空=按句号/换行自动切" />
+                    </div>
+                    <div class="up-input-row">
+                      <label class="up-label">最大长度</label>
+                      <div class="up-number">
+                        <button @click="step('cMaxLen', -50)">−</button>
+                        <input type="number" v-model.number="cMaxLen" min="150" max="800" step="50" />
+                        <button @click="step('cMaxLen', 50)">+</button>
+                      </div>
+                      <span class="up-range-hint">150–800</span>
+                    </div>
+                    <div class="up-inline-info">ℹ 父子模式 overlap 强制为 0（父块兜底了）</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section ③ 预处理 -->
+            <div class="up-section">
+              <div class="up-section-head">
+                <div class="up-section-title"><span class="up-section-num">3</span>文本预处理</div>
+                <span class="up-section-toggle" @click="ppCollapsed = !ppCollapsed">{{ ppCollapsed ? '展开' : '收起' }}</span>
+              </div>
+              <div class="up-section-body" v-show="!ppCollapsed">
+                <div class="up-pp-grid">
+                  <label class="up-pp-item">
+                    <input type="checkbox" v-model="ppCleanWhitespace">
+                    <span class="up-pp-switch"></span>
+                    <span class="up-pp-text"><b>清理多余空白</b><small>连续空行→2个</small></span>
+                  </label>
+                  <label class="up-pp-item">
+                    <input type="checkbox" v-model="ppStripHtml">
+                    <span class="up-pp-switch"></span>
+                    <span class="up-pp-text"><b>去除 HTML</b><small>标签→纯文本</small></span>
+                  </label>
+                  <label class="up-pp-item">
+                    <input type="checkbox" v-model="ppNormalizeSpaces">
+                    <span class="up-pp-switch"></span>
+                    <span class="up-pp-text"><b>合并连续空格</b><small>多空格→单空格</small></span>
+                  </label>
+                  <label class="up-pp-item">
+                    <input type="checkbox" v-model="ppStripUrls">
+                    <span class="up-pp-switch"></span>
+                    <span class="up-pp-text"><b>清理长 URL</b><small>http链接移除（默认关）</small></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section ④ 模型 -->
+            <div class="up-section">
+              <div class="up-section-head">
+                <div class="up-section-title"><span class="up-section-num">4</span>向量模型</div>
+              </div>
+              <div class="up-section-body">
+                <select class="up-text-input" v-model="embedModel">
+                  <option v-for="m in embedModels" :key="m.name" :value="m.name">{{ m.name }} · {{ m.dim || '?' }}维{{ m.default ? '（默认）' : '' }}</option>
+                </select>
+                <div class="up-inline-info">ℹ 同一知识库内需保持一致</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ 右侧预览区 ============ -->
+          <div class="up-right">
+            <div class="up-preview-header">
+              <div class="up-preview-title">
+                实时预览
+                <span v-if="previewError" class="up-badge" style="background:rgba(239,68,68,.15);color:var(--red);">出错</span>
+                <span v-else-if="previewMode === 'parent_child'" class="up-badge">父子分段</span>
+                <span v-else-if="previewResult" class="up-badge">通用分段</span>
+              </div>
+              <div v-if="hasFiles && previewResult && previewResult.stats" class="up-stats-bar">
+                <template v-if="previewMode === 'parent_child'">
+                  <div class="up-stat-chip up-parent"><span class="up-sc-num">{{ previewResult.stats.total_parents }}</span><span class="up-sc-label">父块</span></div>
+                  <div class="up-stat-chip up-child"><span class="up-sc-num">{{ previewResult.stats.total_children }}</span><span class="up-sc-label">子块</span></div>
+                  <div class="up-stat-chip"><span class="up-sc-num">{{ previewResult.stats.avg_child_length }}</span><span class="up-sc-label">平均/子块</span></div>
+                </template>
                 <template v-else>
-                  <div style="font-size:11px;color:var(--text-dim);background:var(--bg-soft);padding:6px 10px;border-radius:6px;">
-                    整篇文档 = 1 个父块（命中子块时把全文喂给模型），适合短文或章节完整的文档
-                  </div>
+                  <div class="up-stat-chip"><span class="up-sc-num">{{ previewResult.stats.total_blocks }}</span><span class="up-sc-label">块</span></div>
+                  <div class="up-stat-chip"><span class="up-sc-num">{{ previewResult.stats.avg_length }}</span><span class="up-sc-label">平均/块</span></div>
                 </template>
-
-                <div class="chunk-card-divider"></div>
-
-                <!-- 子块配置（两种父子模式都有） -->
-                <div class="chunk-card-param">
-                  <label>子块分隔符</label>
-                  <input type="text" v-model="cSeparator" placeholder="例如 $$ 或 . （留空=按句号/换行自动切）">
+                <div class="up-stat-chip"><span class="up-sc-num">{{ previewResult.stats.total_chars }}</span><span class="up-sc-label">总字</span></div>
+                <div v-if="previewResult.tail_omitted" class="up-stat-chip" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);">
+                  <span style="font-size:11px;color:var(--orange);">+{{ previewResult.tail_omitted }} 未展示</span>
                 </div>
-                <div class="chunk-card-param">
-                  <label>子块最大长度</label>
-                  <input type="range" min="150" max="800" step="50" v-model="cMaxLen">
-                  <span class="range-val">{{ cMaxLen }}</span>
-                </div>
+              </div>
+            </div>
 
-                <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">
-                  父子模式 <b style="color:var(--accent);">无 overlap</b>（父块兜底了，overlap 是通用分段才需要的）
+            <!-- 空态 -->
+            <div v-if="!hasFiles" class="up-empty">
+              <div class="up-empty-icon">📂</div>
+              <div class="up-empty-title">请先选择文件</div>
+              <div class="up-empty-desc">左侧选择文件或输入 URL 后，预览区域将展示切分结果。</div>
+            </div>
+            <!-- Loading 态 -->
+            <div v-else-if="previewLoading" class="up-loading">
+              <div class="up-spinner"></div>
+              <span>正在解析预览…</span>
+            </div>
+            <!-- 错误态 -->
+            <div v-else-if="previewError" class="up-empty error">
+              <div class="up-empty-icon">⚠️</div>
+              <div class="up-empty-title">无法生成预览</div>
+              <div class="up-empty-desc">{{ previewError }}</div>
+            </div>
+            <!-- 父子模式预览 -->
+            <template v-else-if="previewMode === 'parent_child' && previewResult && previewResult.parents && previewResult.parents.length">
+              <div v-for="p in previewResult.parents" :key="p.index" class="up-pblock">
+                <div class="up-pblock-head">
+                  <span class="up-pblock-tag">📦 父块</span>
+                  <span class="up-pblock-idx">#{{ p.index }}</span>
+                  <span class="up-pblock-len">{{ p.length }} 字 · {{ p.total_children }} 子块</span>
                 </div>
-              </template>
+                <div class="up-pblock-text">{{ p.parent_text }}</div>
+                <div class="up-cblocks">
+                  <div v-for="c in p.children" :key="c.child_index" class="up-cblock">
+                    <div class="up-cblock-head">
+                      <span class="up-cblock-idx">子块 {{ c.child_index }}</span>
+                      <span class="up-cblock-len">{{ c.length }} 字</span>
+                    </div>
+                    <div>{{ c.text }}</div>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <!-- 通用模式预览 -->
+            <template v-else-if="previewMode === 'general' && previewResult && previewResult.blocks && previewResult.blocks.length">
+              <div v-for="b in previewResult.blocks" :key="b.index" class="up-fblock">
+                <div class="up-fblock-head">
+                  <span class="up-fblock-idx">📄 分块 #{{ b.index }}</span>
+                  <span class="up-fblock-len">{{ b.length }} 字</span>
+                </div>
+                <div>{{ b.text }}</div>
+              </div>
+            </template>
+            <!-- 无数据 -->
+            <div v-else-if="hasFiles && !previewLoading && !previewError && previewResult" class="up-empty">
+              <div class="up-empty-icon">✂️</div>
+              <div class="up-empty-title">未生成分块</div>
+              <div class="up-empty-desc">请检查分隔符配置或切换分块模式。</div>
             </div>
           </div>
         </div>
 
-        <!-- ===== 文本预处理规则（Dify 风格 toggle switches）===== -->
-        <div class="field">
-          <label>文本预处理规则 <span style="color:var(--text-dim);font-weight:normal;">（入库前自动清理脏数据）</span></label>
-          <div class="preprocess-grid">
-            <label class="pp-item">
-              <input type="checkbox" v-model="ppCleanWhitespace">
-              <span class="pp-switch"></span>
-              <span class="pp-text">
-                <b>清理多余空白</b>
-                <small>连续空行→2个，行尾空白清理，零宽字符</small>
-              </span>
-            </label>
-            <label class="pp-item">
-              <input type="checkbox" v-model="ppStripHtml">
-              <span class="pp-switch"></span>
-              <span class="pp-text">
-                <b>去除 HTML 标签</b>
-                <small>script/style 块 + 所有标签 → 纯文本</small>
-              </span>
-            </label>
-            <label class="pp-item">
-              <input type="checkbox" v-model="ppNormalizeSpaces">
-              <span class="pp-switch"></span>
-              <span class="pp-text">
-                <b>合并连续空格</b>
-                <small>多空格/制表符→单空格（纯中文跳过）</small>
-              </span>
-            </label>
-            <label class="pp-item">
-              <input type="checkbox" v-model="ppStripUrls">
-              <span class="pp-switch"></span>
-              <span class="pp-text">
-                <b>清理长 URL</b>
-                <small>http(s):// 开头的链接移除（默认关）</small>
-              </span>
-            </label>
+        <!-- ===== Footer ===== -->
+        <div class="up-footer">
+          <div class="up-footer-left" :class="{empty: !isDirty}">
+            <span class="up-dot"></span>配置已修改，未提交
           </div>
-        </div>
-
-        <div class="field">
-          <label>向量模型 <span style="color:var(--text-dim);font-weight:normal;">（文本向量化，默认 bge-m3）</span></label>
-          <select v-model="embedModel" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;">
-            <option v-for="m in embedModels" :key="m.name" :value="m.name">
-              {{ m.name }}
-              <span v-if="m.dim">· {{ m.dim }}维</span>
-              <span v-if="m.default" style="color:var(--accent);">（默认）</span>
-            </option>
-          </select>
-          <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">不同 embedding 模型维度可能不同，同一知识库内需保持一致</div>
-        </div>
-        <div style="font-size:12px;color:var(--text-dim);">较大的分段保留更多上下文但检索更粗略；重叠可缓解分段边界的语义割裂。</div>
-        <div class="modal-actions">
-          <button class="btn-cancel" @click="$emit('cancel')">取消</button>
-          <button class="btn-ok" :disabled="busy" @click="ok">{{ busy ? '抓取中…' : '开始上传' }}</button>
+          <div class="up-footer-right">
+            <button class="up-btn-ghost" :disabled="busy" @click="handleClose">取消</button>
+            <button class="up-btn-primary" :disabled="busy || !canSubmit" @click="ok">
+              <span v-if="busy">⏳ 上传中…</span>
+              <span v-else>开始解析 →</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -4555,32 +4802,80 @@
         tab: 'file',
         url: '',
         targetKb: this.defaultKb || 'default',
-        uid: Math.random().toString(36).slice(2, 8),  // radio name 唯一化
-        // ===== 二选一：通用分段 / 父子分段 =====
+        // ===== 分块模式 =====
         chunkMode: 'parent_child',
-
-        // ===== 通用分段参数 =====
+        // 通用
         gSeparator: '',
         gMaxLen: 500,
         gOverlap: 50,
-
-        // ===== 父子分段参数 =====
-        parentStrategy: 'paragraph',  // paragraph / document
+        // 父子
+        parentStrategy: 'paragraph',
         pSeparator: '',
         pMaxLen: 1024,
         cSeparator: '',
         cMaxLen: 300,
-
-        embedModels: [],
-        embedModel: '',
-        // ===== 文本预处理规则（默认全开启，strip_urls 默认关）=====
+        // 预处理
         ppCleanWhitespace: true,
         ppStripHtml: true,
         ppNormalizeSpaces: true,
-        ppStripUrls: false
+        ppStripUrls: false,
+        ppCollapsed: false,
+        // 模型
+        embedModels: [],
+        embedModel: '',
+        // ===== 预览 =====
+        fileText: '',           // 已选文件的文本内容
+        previewResult: null,
+        previewLoading: false,
+        previewError: '',
+        _previewTimer: null,
+        // ===== 关闭拦截 =====
+        _initialSnapshot: null,
       };
     },
+    computed: {
+      overlapError() {
+        if (this.chunkMode !== 'general') return false;
+        return parseInt(this.gOverlap) >= parseInt(this.gMaxLen);
+      },
+      previewMode() { return this.chunkMode; },
+      hasFiles() {
+        if (this.tab === 'url') return !!this.url.trim();
+        return this.files.length > 0 && !!this.fileText;
+      },
+      canSubmit() {
+        if (this.busy) return false;
+        if (this.overlapError) return false;
+        if (this.tab === 'url') return !!this.url.trim();
+        return this.files.length > 0;
+      },
+      isDirty() {
+        if (!this._initialSnapshot) return false;
+        const cur = this._makeSnapshot();
+        return JSON.stringify(cur) !== JSON.stringify(this._initialSnapshot);
+      }
+    },
+    watch: {
+      // 所有影响预览的字段变化 → debounce 300ms 触发预览
+      chunkMode() { this._schedulePreview(); },
+      gSeparator() { this._schedulePreview(); },
+      gMaxLen() { this._schedulePreview(); },
+      gOverlap() { this._schedulePreview(); },
+      parentStrategy() { this._schedulePreview(); },
+      pSeparator() { this._schedulePreview(); },
+      pMaxLen() { this._schedulePreview(); },
+      cSeparator() { this._schedulePreview(); },
+      cMaxLen() { this._schedulePreview(); },
+      ppCleanWhitespace() { this._schedulePreview(); },
+      ppStripHtml() { this._schedulePreview(); },
+      ppNormalizeSpaces() { this._schedulePreview(); },
+      ppStripUrls() { this._schedulePreview(); },
+      tab() { this._schedulePreview(); },
+      url() { this._schedulePreview(); },
+      files: { handler() { this._readFiles(); }, deep: true },
+    },
     async mounted() {
+      // 加载模型
       try {
         const resp = await fetch('/api/embed-models');
         if (resp.ok) {
@@ -4589,30 +4884,159 @@
           this.embedModel = def ? def.name : (this.embedModels[0]?.name || '');
         }
       } catch (e) { console.warn('加载 embedding 模型失败', e); }
+
+      // 读文件内容（如果已经有 files prop 传进来）
+      await this._readFiles();
+
+      // 保存初始快照（关闭拦截用）
+      this.$nextTick(() => {
+        this._initialSnapshot = this._makeSnapshot();
+        // 首次触发预览
+        this._schedulePreview();
+      });
+
+      // Esc 绑定
+      this._escHandler = (e) => { if (e.key === 'Escape') this.handleClose(); };
+      document.addEventListener('keydown', this._escHandler);
+    },
+    beforeDestroy() {
+      document.removeEventListener('keydown', this._escHandler);
+      if (this._previewTimer) clearTimeout(this._previewTimer);
     },
     methods: {
       fmtSize(f) { return (f.size / 1024).toFixed(1) + ' KB'; },
-      ok() {
-        // 根据分块模式构建 chunk_config（对齐后端新 Dify 格式）
-        let chunkConfig;
+
+      // ===== 数值步进器 =====
+      step(field, delta) {
+        let v = parseInt(this[field]) || 0;
+        v += delta;
+        this[field] = Math.max(0, v);
+      },
+
+      switchTab(t) { this.tab = t; },
+
+      removeFile(i) {
+        // files 是 prop，emit 让父组件更新
+        this.$emit('update:files', this.files.filter((_, idx) => idx !== i));
+        // 或直接用 Vue.set 替换整个数组（因为 prop 不可直接改）
+        const newFiles = [...this.files]; newFiles.splice(i, 1);
+        this.$emit('update:files', newFiles);
+      },
+
+      // ===== 关闭拦截 =====
+      handleClose() {
+        if (this.isDirty) {
+          const r = confirm('配置已修改但未提交，确定关闭吗？');
+          if (!r) return;
+        }
+        this.$emit('cancel');
+      },
+      handleMaskClick() { this.handleClose(); },
+
+      // ===== 快照 =====
+      _makeSnapshot() {
+        return {
+          tab: this.tab, url: this.url, targetKb: this.targetKb,
+          chunkMode: this.chunkMode,
+          gSeparator: this.gSeparator, gMaxLen: this.gMaxLen, gOverlap: this.gOverlap,
+          parentStrategy: this.parentStrategy,
+          pSeparator: this.pSeparator, pMaxLen: this.pMaxLen,
+          cSeparator: this.cSeparator, cMaxLen: this.cMaxLen,
+          ppCleanWhitespace: this.ppCleanWhitespace, ppStripHtml: this.ppStripHtml,
+          ppNormalizeSpaces: this.ppNormalizeSpaces, ppStripUrls: this.ppStripUrls,
+          embedModel: this.embedModel,
+        };
+      },
+
+      // ===== 读文件文本（FileReader） =====
+      async _readFiles() {
+        if (!this.files || !this.files.length) {
+          this.fileText = '';
+          return;
+        }
+        try {
+          // 只读第一个文件的前 500KB 用来预览（大文件截断）
+          const f = this.files[0];
+          const text = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsText(f);
+          });
+          this.fileText = (text || '').slice(0, 500000);
+        } catch (e) {
+          console.warn('读文件失败', e);
+          this.fileText = '';
+        }
+        this._schedulePreview();
+      },
+
+      // ===== 实时预览（debounce 300ms） =====
+      _schedulePreview() {
+        if (this._previewTimer) clearTimeout(this._previewTimer);
+        this._previewTimer = setTimeout(() => this.doPreview(), 300);
+      },
+
+      async doPreview() {
+        const text = this.tab === 'url' ? this.url : this.fileText;
+        if (!text || !text.trim()) {
+          this.previewResult = null;
+          this.previewError = '';
+          return;
+        }
+        const cfg = this._buildChunkConfig();
+        const rules = {
+          clean_whitespace: this.ppCleanWhitespace,
+          strip_html: this.ppStripHtml,
+          normalize_spaces: this.ppNormalizeSpaces,
+          strip_urls: this.ppStripUrls,
+        };
+
+        this.previewLoading = true;
+        this.previewError = '';
+        try {
+          const resp = await fetch('/api/kb/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, chunk_config: cfg, preprocess_rules: rules })
+          });
+          if (!resp.ok) throw new Error('预览接口 ' + resp.status);
+          const data = await resp.json();
+          this.previewResult = data;
+        } catch (e) {
+          this.previewResult = null;
+          this.previewError = e.message || '预览失败';
+        } finally {
+          this.previewLoading = false;
+        }
+      },
+
+      _buildChunkConfig() {
         if (this.chunkMode === 'parent_child') {
-          chunkConfig = {
+          return {
             mode: 'parent_child',
-            parent_strategy: this.parentStrategy,  // paragraph / document
+            parent_strategy: this.parentStrategy,
             parent_separator: this.pSeparator?.trim() || null,
             parent_max_length: parseInt(this.pMaxLen),
             child_separator: this.cSeparator?.trim() || null,
             child_max_length: parseInt(this.cMaxLen),
           };
-        } else {
-          chunkConfig = {
-            mode: 'general',
-            separator: this.gSeparator?.trim() || null,
-            max_length: parseInt(this.gMaxLen),
-            overlap: parseInt(this.gOverlap),
-          };
         }
-        // 文本预处理规则（Dify 风格）
+        return {
+          mode: 'general',
+          separator: this.gSeparator?.trim() || null,
+          max_length: parseInt(this.gMaxLen),
+          overlap: parseInt(this.gOverlap),
+        };
+      },
+
+      // ===== 提交 =====
+      ok() {
+        if (this.overlapError) {
+          store.toast('overlap 不能 ≥ 最大长度');
+          return;
+        }
+        const chunkConfig = this._buildChunkConfig();
         chunkConfig.preprocess_rules = {
           clean_whitespace: this.ppCleanWhitespace,
           strip_html: this.ppStripHtml,
