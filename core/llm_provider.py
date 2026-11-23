@@ -99,6 +99,17 @@ class BaseProvider:
 # Ollama Provider（本地默认）
 # ============================================================
 
+def _ollama_options(keep):
+    """统一生成参数：抑制小模型重复循环 + 限制输出长度"""
+    return {
+        "keep_alive": keep,
+        "temperature": getattr(config, "CHAT_TEMPERATURE", 0.7),
+        "repeat_penalty": getattr(config, "CHAT_REPEAT_PENALTY", 1.3),
+        "repeat_last_n": getattr(config, "CHAT_REPEAT_LAST_N", 256),
+        "num_predict": getattr(config, "CHAT_NUM_PREDICT", 1024),
+    }
+
+
 @_register("ollama")
 class OllamaProvider(BaseProvider):
     def __init__(self, cfg):
@@ -114,7 +125,7 @@ class OllamaProvider(BaseProvider):
                 "model": use_model,
                 "messages": self._inject_images(messages, images),
                 "stream": False, "think": False,
-                "options": {"keep_alive": keep},
+                "options": _ollama_options(keep),
             },
             timeout=timeout,
         )
@@ -131,7 +142,7 @@ class OllamaProvider(BaseProvider):
                 "model": use_model,
                 "messages": self._inject_images(messages, images),
                 "stream": True, "think": False,
-                "options": {"keep_alive": keep},
+                "options": _ollama_options(keep),
             },
             stream=True, timeout=600,
         )

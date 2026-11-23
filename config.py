@@ -45,6 +45,12 @@ KEEP_ALIVE_CHAT = 0        # 聊天模型冷启（仅用户发消息时需要）
 KEEP_ALIVE_VISION = 0      # 视觉模型冷启（仅多模态问答/图片入库时需要）
 KEEP_ALIVE_PROBE = 0       # 工具探测模型冷启
 
+# 生成参数：小模型（3B）在中文长文本上容易退化成重复循环，必须加重复惩罚 + 输出上限
+CHAT_TEMPERATURE = 0.3      # 知识库问答以"照原文回答"为主，低温度更稳，减少胡编
+CHAT_REPEAT_PENALTY = 1.3   # 默认 1.1 太弱，1.25~1.35 能有效抑制"作弊行为作弊行为…"
+CHAT_REPEAT_LAST_N = 256
+CHAT_NUM_PREDICT = 1024     # 单次回答最多生成 token 数，防止无限循环
+
 # RAG 参数
 CHUNK_SIZE = 500        # 每个切块的目标字符数
 CHUNK_OVERLAP = 50      # 切块重叠字符数

@@ -860,11 +860,42 @@
     color: var(--text-dim); font-size: 13px;
   }
   .log-box {
-    background: var(--bg-soft); border-radius: 8px; padding: 16px 18px;
+    background: var(--bg-soft); border-radius: 8px; padding: 10px 14px;
     max-height: 600px; overflow-y: auto; font-size: 12px; line-height: 1.7;
     font-family: 'Consolas', 'Monaco', monospace;
-    margin: 0; color: var(--text); white-space: pre-wrap;
+    margin: 0; color: var(--text);
     border: 1px solid var(--border);
+  }
+  .log-item { border-bottom: 1px dashed var(--border); }
+  .log-item:last-child { border-bottom: none; }
+  .log-line {
+    padding: 6px 2px; cursor: pointer; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; list-style: none;
+  }
+  .log-line::-webkit-details-marker { display: none; }
+  .log-line::before { content: '▸ '; color: var(--text-dim); }
+  .log-item[open] .log-line::before { content: '▾ '; }
+  .log-item[open] .log-line { white-space: normal; }
+  .log-line.lv-error { color: #ef4444; }
+  .log-line.lv-warn { color: #f59e0b; }
+  .log-line.lv-info { color: #38bdf8; }
+  .log-line.lv-debug { color: var(--text-dim); }
+  .meta-form { display: flex; flex-direction: column; gap: 12px; }
+  .meta-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-sub); }
+  .doc-actions { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .doc-act {
+    padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent; color: var(--text-sub);
+    transition: all .15s; line-height: 1.4;
+  }
+  .doc-act:hover { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,.08); }
+  .doc-act.danger { color: #ef4444; }
+  .doc-act.danger:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,.08); }
+  .log-detail {
+    white-space: pre-wrap; word-break: break-all;
+    background: rgba(0,0,0,.18); border-left: 2px solid var(--border);
+    padding: 8px 10px; margin: 2px 0 8px; border-radius: 4px;
+    color: var(--text-dim);
   }
   .audit-table {
     width: 100%; border-collapse: collapse; font-size: 13px;
@@ -1545,13 +1576,18 @@
                 <!-- 文档列表 -->
                 <div id="doc-list">
                   <table class="doc-table" v-if="docs.length">
-                    <thead><tr><th>文档名称</th><th>分块数</th><th>上传时间</th><th style="width:60px">操作</th></tr></thead>
+                    <thead><tr><th>文档名称</th><th>分块数</th><th>上传时间</th><th style="width:150px">操作</th></tr></thead>
                     <tbody>
                       <tr v-for="d in docs" :key="d.id">
                         <td class="doc-name" :title="d.name" style="cursor:pointer;color:#2563eb" @click="showChunks(d)"><u>{{ d.name }}</u></td>
                         <td>{{ d.chunks }}</td>
                         <td>{{ d.created }}</td>
-                        <td><span class="del" @click="delDoc(d)">删除</span></td>
+                        <td>
+                          <div class="doc-actions">
+                            <button class="doc-act" @click="openMeta(d)">🏷️ 元数据</button>
+                            <button class="doc-act danger" @click="delDoc(d)">删除</button>
+                          </div>
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -1567,6 +1603,34 @@
                   <select :value="docPageSize" @change="changeDocPageSize(parseInt($event.target.value))">
                     <option :value="5">5</option><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option>
                   </select>
+                </div>
+
+                <!-- 元数据编辑弹窗 -->
+                <div v-if="showMetaModal" class="modal-mask" @click.self="showMetaModal = false">
+                  <div class="modal" style="max-width:520px;">
+                    <div class="modal-head">🏷️ 编辑元数据 · {{ metaDoc && metaDoc.name }}</div>
+                    <div class="meta-form">
+                      <label>文档类型 doc_type
+                        <input v-model="metaForm.doc_type" class="form-input" placeholder="如：制度 / 手册 / FAQ">
+                      </label>
+                      <label>标题 title
+                        <input v-model="metaForm.title" class="form-input" placeholder="可选，展示用标题">
+                      </label>
+                      <label>生效日期 valid_from
+                        <input type="date" v-model="metaForm.valid_from" class="form-input">
+                      </label>
+                      <label>过期日期 valid_to（到期后自动不再被检索）
+                        <input type="date" v-model="metaForm.valid_to" class="form-input">
+                      </label>
+                      <label>标签 tags（逗号分隔）
+                        <input v-model="metaForm.tags" class="form-input" placeholder="如：考试,违规,处分">
+                      </label>
+                    </div>
+                    <div class="modal-actions">
+                      <button class="btn-ghost" @click="showMetaModal = false">取消</button>
+                      <button class="btn-primary" :disabled="metaBusy" @click="saveMeta">{{ metaBusy ? '保存中…' : '保存' }}</button>
+                    </div>
+                  </div>
                 </div>
               </template>
             </div>
@@ -2405,6 +2469,36 @@
             </div>
           </div>
 
+          <!-- 同义词词典 -->
+          <div v-show="setTab === 'synonyms'">
+            <div class="panel">
+              <div class="fr-desc" style="margin-bottom:14px;line-height:1.8">
+                「标准词 → 同义词」映射。检索时若问题里出现标准词，会自动替换生成多条扩展查询并合并结果。
+                <b>保存后立即生效，无需重启。</b>
+              </div>
+              <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr style="text-align:left;color:var(--text-sub);font-size:12px;">
+                    <th style="width:200px;padding:6px 4px;">标准词</th>
+                    <th style="padding:6px 4px;">同义词（用逗号分隔）</th>
+                    <th style="width:60px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(it, i) in synonymItems" :key="i">
+                    <td style="padding:4px;"><input v-model="it.key" class="form-input" placeholder="如：考试作弊"></td>
+                    <td style="padding:4px;"><input v-model="it.synonymsText" class="form-input" placeholder="如：考试违纪, 考试违规, 代考"></td>
+                    <td style="padding:4px;"><button class="doc-act danger" @click="synonymItems.splice(i, 1)">删除</button></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style="display:flex;gap:10px;margin-top:14px;">
+                <button class="btn-ghost" @click="synonymItems.push({ key: '', synonymsText: '' })">＋ 新增词条</button>
+                <button class="btn-primary" :disabled="synonymBusy" @click="saveSynonyms">{{ synonymBusy ? '保存中…' : '保存同义词' }}</button>
+              </div>
+            </div>
+          </div>
+
           <!-- 数据存储 -->
           <div v-show="setTab === 'storage'">
             <div class="panel">
@@ -3073,7 +3167,12 @@
             <button class="btn-primary" @click="loadLogs">🔄 刷新</button>
           </div>
           <div v-if="!logs.length" class="audit-empty">暂无日志记录</div>
-          <pre class="log-box"><code v-for="(l, i) in logs" :key="i">{{ l.line }}</code></pre>
+          <div class="log-box">
+            <details v-for="(l, i) in logs" :key="i" class="log-item">
+              <summary class="log-line" :class="logLineClass(l.line)">{{ l.line }}</summary>
+              <div class="log-detail" v-if="l.detail">{{ l.detail }}</div>
+            </details>
+          </div>
           <div class="page-nav" v-if="logTotal > 0">
             <span>共 {{ logTotal }} 条</span>
             <button class="page-btn" :disabled="logPage <= 1" @click="gotoPage('logs', logPage - 1)">‹</button>
@@ -3095,13 +3194,13 @@
         <!-- =========== 安全审计 =========== -->
         <div v-show="tab === 'audit'" class="panel">
           <div class="audit-toolbar">
-            <input v-model="auditKeyword" @keyup.enter="loadAudit" placeholder="搜索 action/detail/资源..." class="audit-search">
-            <input v-model="auditActor" @keyup.enter="loadAudit" placeholder="用户名筛选" class="audit-search" style="width:140px;">
+            <input v-model="auditKeyword" @keyup.enter="searchAudit" placeholder="搜索 action/detail/资源..." class="audit-search">
+            <input v-model="auditActor" @keyup.enter="searchAudit" placeholder="用户名筛选" class="audit-search" style="width:140px;">
             <select v-model="auditAction" class="audit-select">
               <option value="">全部动作</option>
               <option v-for="a in actionFilterList" :key="a" :value="a">{{ a }}</option>
             </select>
-            <button class="btn-primary" @click="loadAudit">🔄 刷新</button>
+            <button class="btn-primary" @click="searchAudit">🔍 查询</button>
             <button class="btn-secondary" @click="exportAudit('csv')">⬇ 导出 CSV</button>
             <button class="btn-secondary" @click="exportAudit('json')">⬇ 导出 JSON</button>
           </div>
@@ -3806,7 +3905,37 @@
         localStorage.setItem('rag-theme', t);
         document.documentElement.dataset.theme = t;
       };
-      // 不再自动加载数据——等登录后 store.auth.login() 里自动加载
+
+      // 恢复登录态：从 localStorage 读 token → 验证有效 → 自动登录
+      try {
+        const savedToken = localStorage.getItem('rag_token');
+        const savedUser = localStorage.getItem('rag_user');
+        if (savedToken && savedUser) {
+          window.__authToken = savedToken;
+          store.token = savedToken;
+          store.user = JSON.parse(savedUser);
+          // 调 /api/auth/me 验证 token 还有效
+          fetch('/api/auth/me').then(async r => {
+            if (r.ok) {
+              store.loggedIn = true;
+              window.__onAuthExpired = (info) => {
+                store.token = null; store.user = null; store.loggedIn = false;
+                window.stopKickPolling();
+                try { localStorage.removeItem('rag_token'); localStorage.removeItem('rag_user'); } catch(e) {}
+                if (info && info.kicked) { store.kicked = true; store.kickedModal = true; }
+              };
+              window.startKickPolling();
+              store.loadSessions();
+              store.loadKbList();
+            } else {
+              // token 过期或被撤销，清掉
+              localStorage.removeItem('rag_token');
+              localStorage.removeItem('rag_user');
+              window.__authToken = null;
+            }
+          }).catch(() => { /* 网络错误不清 token，等用户手动刷新 */ });
+        }
+      } catch(e) { /* localStorage 读失败不管 */ }
     }
   });
   app.config.globalProperties.store = store;
@@ -4352,6 +4481,8 @@
       // 弹窗
       showKbModal: false,
       showUploadModal: false,
+      showMetaModal: false, metaDoc: null, metaBusy: false,
+      metaForm: { doc_type: '', title: '', valid_from: '', valid_to: '', tags: '' },
       pendingFiles: [],
       urlFetching: false,
       // 分页状态（每个列表独立）
@@ -4431,6 +4562,40 @@
         if (!await store.confirm(`确认删除文档「${d.name}」？其所有向量将一并移除。`, '确认删除')) return;
         await fetch(`/api/documents/${d.id}`, { method: 'DELETE' });
         this.loadDocs();
+      },
+
+      /* ---- 元数据编辑 ---- */
+      async openMeta(d) {
+        this.metaDoc = d;
+        this.metaForm = { doc_type: '', title: '', valid_from: '', valid_to: '', tags: '' };
+        this.showMetaModal = true;
+        try {
+          const m = await (await fetch(`/api/documents/${d.id}/metadata`)).json();
+          Object.keys(this.metaForm).forEach(k => {
+            if (m && m[k] != null) this.metaForm[k] = String(m[k]);
+          });
+        } catch (e) { /* 读取失败时留空即可 */ }
+      },
+      async saveMeta() {
+        if (!this.metaDoc) return;
+        this.metaBusy = true;
+        try {
+          const payload = {};
+          Object.entries(this.metaForm).forEach(([k, v]) => { payload[k] = v || null; });
+          const r = await fetch(`/api/documents/${this.metaDoc.id}/metadata`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(data.detail || '保存失败');
+          this.showMetaModal = false;
+          store.toast('元数据已更新');
+        } catch (e) {
+          store.toast('保存失败: ' + e.message);
+        } finally {
+          this.metaBusy = false;
+        }
       },
 
       /* ---- 上传流程 ---- */
@@ -4803,7 +4968,7 @@
         url: '',
         targetKb: this.defaultKb || 'default',
         // ===== 分块模式 =====
-        chunkMode: 'parent_child',
+        chunkMode: 'general',
         // 通用
         gSeparator: '',
         gMaxLen: 500,
@@ -4841,7 +5006,7 @@
       previewMode() { return this.chunkMode; },
       hasFiles() {
         if (this.tab === 'url') return !!this.url.trim();
-        return this.files.length > 0 && !!this.fileText;
+        return this.files && this.files.length > 0;
       },
       canSubmit() {
         if (this.busy) return false;
@@ -4948,15 +5113,26 @@
         };
       },
 
-      // ===== 读文件文本（FileReader） =====
+      // ===== 判断文件是否是二进制（需要后端解析） =====
+      _isBinaryExt(filename) {
+        const ext = (filename || '').split('.').pop().toLowerCase();
+        return ['docx','pdf','pptx','xlsx','doc','ppt','xls','odt','rtf','epub'].includes(ext);
+      },
+
+      // ===== 读文件文本 =====
       async _readFiles() {
         if (!this.files || !this.files.length) {
           this.fileText = '';
           return;
         }
+        const f = this.files[0];
+        // 二进制文件不前端读，直接让后端 parse_file 解
+        if (this._isBinaryExt(f.name)) {
+          this.fileText = '';  // 空字符串标记：doPreview 里会用 FormData 传文件
+          this._schedulePreview();
+          return;
+        }
         try {
-          // 只读第一个文件的前 500KB 用来预览（大文件截断）
-          const f = this.files[0];
           const text = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = e => resolve(e.target.result);
@@ -4978,12 +5154,6 @@
       },
 
       async doPreview() {
-        const text = this.tab === 'url' ? this.url : this.fileText;
-        if (!text || !text.trim()) {
-          this.previewResult = null;
-          this.previewError = '';
-          return;
-        }
         const cfg = this._buildChunkConfig();
         const rules = {
           clean_whitespace: this.ppCleanWhitespace,
@@ -4995,12 +5165,30 @@
         this.previewLoading = true;
         this.previewError = '';
         try {
-          const resp = await fetch('/api/kb/preview', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, chunk_config: cfg, preprocess_rules: rules })
-          });
-          if (!resp.ok) throw new Error('预览接口 ' + resp.status);
+          // 统一用 FormData，后端一律 multipart/form-data
+          const fd = new FormData();
+          fd.append('chunk_config', JSON.stringify(cfg));
+          fd.append('preprocess_rules', JSON.stringify(rules));
+
+          const firstFile = this.files && this.files[0];
+          if (this.tab === 'file' && firstFile && this._isBinaryExt(firstFile.name)) {
+            // 二进制：传文件，后端 parse_file 解
+            fd.append('file', firstFile);
+          } else {
+            // 纯文本/tab/URL：传 text 字符串
+            const text = this.tab === 'url' ? this.url : this.fileText;
+            if (!text || !text.trim()) {
+              this.previewResult = null;
+              this.previewLoading = false;
+              return;
+            }
+            fd.append('text', text);
+          }
+          const resp = await fetch('/api/kb/preview', { method: 'POST', body: fd });
+          if (!resp.ok) {
+            const body = await resp.text();
+            throw new Error('预览接口 ' + resp.status + ': ' + body.slice(0, 200));
+          }
           const data = await resp.json();
           this.previewResult = data;
         } catch (e) {
@@ -5076,6 +5264,7 @@
         { key: 'prompt', icon: '📝', label: '提示词' },
         { key: 'security', icon: '🔒', label: '安全' },
         { key: 'retrieval', icon: '🔍', label: '检索配置' },
+        { key: 'synonyms', icon: '🔤', label: '同义词' },
         { key: 'reply', icon: '⚡', label: '快捷回复' },
         { key: 'storage', icon: '💾', label: '数据存储' }
       ],
@@ -5111,6 +5300,9 @@
       faqEnabled: false,
       faqThreshold: 0.6,
       intentEnabled: false,
+      // 同义词词典
+      synonymItems: [],
+      synonymBusy: false,
       // 数据存储目录
       dataDir: '',
       defaultDir: '',
@@ -5176,8 +5368,47 @@
           try {
             this.providerOptions = await (await fetch('/api/providers')).json();
           } catch (_) { this.providerOptions = []; }
+          this.loadSynonyms();
         } catch (e) {
           store.toast('加载设置失败: ' + e.message);
+        }
+      },
+
+      async loadSynonyms() {
+        try {
+          const r = await (await fetch('/api/synonyms')).json();
+          this.synonymItems = (r.items || []).map(it => ({
+            key: it.key,
+            synonymsText: (it.synonyms || []).join(', '),
+          }));
+        } catch (e) {
+          this.synonymItems = [];
+        }
+      },
+      async saveSynonyms() {
+        this.synonymBusy = true;
+        try {
+          const payload = this.synonymItems
+            .filter(it => (it.key || '').trim())
+            .map(it => ({
+              key: it.key.trim(),
+              synonyms: (it.synonymsText || '')
+                .split(/[,，、;；]/)
+                .map(s => s.trim())
+                .filter(Boolean),
+            }));
+          const r = await fetch('/api/synonyms', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.detail || '保存失败');
+          store.toast(`同义词已保存（${d.count} 个词条），已立即生效`);
+        } catch (e) {
+          store.toast('保存失败: ' + e.message);
+        } finally {
+          this.synonymBusy = false;
         }
       },
       async reloadModels() {
@@ -5987,7 +6218,10 @@
     }),
     computed: {
       actionFilterList() {
-        const s = new Set();
+        const s = new Set([
+          'rag.retrieve', 'rag.answer_eval', 'kb.metadata.update',
+          'chat.request', 'auth.login.success', 'auth.login.fail',
+        ]);
         (this.auditLogs || []).forEach(l => {
           const base = l.action.split('.').slice(0, 2).join('.');
           s.add(base);
@@ -6268,6 +6502,20 @@
         } catch (e) { this.store.toast('加载日志失败: ' + e.message); }
       },
 
+      logLineClass(line) {
+        if (!line) return '';
+        if (line.includes('[ERROR')) return 'lv-error';
+        if (line.includes('[WARNING')) return 'lv-warn';
+        if (line.includes('[DEBUG')) return 'lv-debug';
+        if (line.includes('[INFO')) return 'lv-info';
+        return '';
+      },
+
+      searchAudit() {
+        this.auditPage = 1;
+        this.loadAudit();
+      },
+
       async loadAudit() {
         try {
           const params = new URLSearchParams({
@@ -6275,6 +6523,7 @@
           });
           if (this.auditAction) params.set('action', this.auditAction);
           if (this.auditActor) params.set('actor', this.auditActor);
+          if (this.auditKeyword) params.set('keyword', this.auditKeyword);
           const r = await this._fetch('/api/audit-logs?' + params);
           if (r.items !== undefined) {
             this.auditLogs = r.items; this.auditTotal = r.total;

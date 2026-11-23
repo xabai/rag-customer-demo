@@ -57,6 +57,17 @@ def _options(keep_alive):
     return {"keep_alive": keep_alive}
 
 
+def _chat_options(keep_alive):
+    """聊天生成参数：抑制小模型重复循环 + 限制输出长度"""
+    return {
+        "keep_alive": keep_alive,
+        "temperature": getattr(config, "CHAT_TEMPERATURE", 0.7),
+        "repeat_penalty": getattr(config, "CHAT_REPEAT_PENALTY", 1.3),
+        "repeat_last_n": getattr(config, "CHAT_REPEAT_LAST_N", 256),
+        "num_predict": getattr(config, "CHAT_NUM_PREDICT", 1024),
+    }
+
+
 # ============================================================
 # 文本向量（bge-m3，常驻）
 # ============================================================
@@ -188,7 +199,7 @@ def chat_once(messages, model=None, timeout=60, images=None, fallback=None):
             json={
                 "model": use_model,
                 "messages": _inject_images(messages, images),
-                "stream": False, "think": False, "options": _options(keep),
+                "stream": False, "think": False, "options": _chat_options(keep),
             },
             timeout=timeout,
         )
@@ -217,7 +228,7 @@ def chat_stream(messages, model=None, images=None, fallback=None):
             json={
                 "model": use_model,
                 "messages": _inject_images(messages, images),
-                "stream": True, "think": False, "options": _options(keep),
+                "stream": True, "think": False, "options": _chat_options(keep),
             },
             stream=True, timeout=600,
         )

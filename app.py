@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 import config
 import db
@@ -73,7 +73,8 @@ app.add_middleware(_metrics.MetricsMiddleware)                     # ② Prometh
 app.add_middleware(_content_safety.ContentSafetyHTTPMiddleware)    # ③ 内容安全
 
 # ---------- 数据库 ----------
-db.init_db()                   # 旧 SQLite（保持兼容）
+if _settings.DB_DRIVER != "postgresql":
+    db.init_db()  # SQLite 初始化（PG 模式下跳过）
 if _settings.DB_DRIVER == "postgresql":
     orm_init_db(create_defaults=True)
     _log.info("PostgreSQL ORM initialized (26 tables)")
@@ -549,12 +550,64 @@ async def upload(file: UploadFile = File(...), kb_id: str = Form("default"),
                         zeros[orig_i] = all_iv[idx]
                 image_vectors = zeros
 
-        doc_id = store.add_document(
-            file.filename, chunk_texts, vectors, kb_id=kb_id,
-            parent_texts=parent_texts, chunk_images=chunk_images,
-            layout_meta=layout_meta, image_vectors=image_vectors,
-            parent_ids=parent_ids,
-        )
+        # ★ metadata：文件级 + chunk 级元数据
+        doc_type = ext.lstrip(".")
+        file_mtime = os.path.getmtime(path)
+        file_size = os.path.getsize(path)
+        shared_metadata = {
+            "doc_type": doc_type,
+            "source_path": path,
+            "file_size": file_size,
+            "file_mtime": file_mtime,
+        }
+        # 尝试从文件名/内容提取"生效日期"（过期检测）
+        import re as _re
+        def _extract_valid_dates(text):
+            """从 chunk 文本里正则提取生效/过期日期 → valid_from, valid_to"""
+            from datetime import datetime, timezone as _tz
+            results = {}
+            # "生效日期：2024-01-01" / "有效期至 2025年6月"
+            date_pat = r"(\d{4})[-/年.](\d{1,2})[-/月.](\d{1,2})"
+            m_from = _re.search(r"(生效|施行|启用|开始)[^0-9]*?" + date_pat, text)
+            m_to = _re.search(r"(有效期|截止|结束|终止|到期)[^0-9]*?" + date_pat, text)
+            if m_from:
+                y, mo, d = m_from.group(2), m_from.group(3), m_from.group(4)
+                try: results["valid_from"] = datetime(int(y), int(mo), int(d)).timestamp()
+                except: pass
+            if m_to:
+                y, mo, d = m_to.group(2), m_to.group(3), m_to.group(4)
+                try: results["valid_to"] = datetime(int(y), int(mo), int(d)).timestamp()
+                except: pass
+            return results
+        # 批量提取：对每个 chunk 查一遍
+        chunk_metadata_list = []
+        for ct in chunk_texts:
+            md = dict(shared_metadata)
+            md.update(_extract_valid_dates(ct))
+            chunk_metadata_list.append(md)
+
+        # ★ 重名检测：同 kb_id 同文件名 → 原子替换（update_document）
+        existing_doc_id = None
+        for d in store.list_documents():
+            if d.get("name") == file.filename and d.get("kb_id", "default") == kb_id:
+                existing_doc_id = d["id"]
+                break
+
+        if existing_doc_id:
+            print(f"[upload] 检测到重名文档 {file.filename} (kb={kb_id})，走 update_document 替换旧索引")
+            doc_id = store.update_document(
+                existing_doc_id, file.filename, chunk_texts, vectors, kb_id=kb_id,
+                parent_texts=parent_texts, chunk_images=chunk_images,
+                layout_meta=layout_meta, image_vectors=image_vectors,
+                parent_ids=parent_ids, metadata=chunk_metadata_list,
+            )
+        else:
+            doc_id = store.add_document(
+                file.filename, chunk_texts, vectors, kb_id=kb_id,
+                parent_texts=parent_texts, chunk_images=chunk_images,
+                layout_meta=layout_meta, image_vectors=image_vectors,
+                parent_ids=parent_ids, metadata=chunk_metadata_list,
+            )
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -575,6 +628,39 @@ async def delete_document(doc_id: str, _admin: dict = Depends(require_role("admi
     if not store.delete_document(doc_id):
         raise HTTPException(404, "文档不存在")
     return {"ok": True}
+
+
+class DocMetadataUpdate(BaseModel):
+    doc_type: str | None = None
+    title: str | None = None
+    valid_from: str | None = None
+    valid_to: str | None = None
+    tags: str | None = None
+
+
+@app.get("/api/documents/{doc_id}/metadata")
+async def get_doc_metadata(doc_id: str, _admin: dict = Depends(require_role("admin"))):
+    return store.get_document_metadata(doc_id)
+
+
+@app.patch("/api/documents/{doc_id}/metadata")
+async def patch_doc_metadata(doc_id: str, body: DocMetadataUpdate, request: Request,
+                             _admin: dict = Depends(require_role("admin"))):
+    """编辑文档元数据（不重新向量化），保存后立即影响检索过滤/过期判断"""
+    patch = body.model_dump(exclude_unset=True)
+    n = store.update_metadata(doc_id, patch)
+    if not n:
+        raise HTTPException(404, "文档不存在")
+    try:
+        db.write_audit(
+            action="kb.metadata.update", resource_type="document", resource_id=doc_id,
+            detail=json.dumps({"patch": patch, "chunks": n}, ensure_ascii=False),
+            actor_user_id=_admin.get("id"), actor_username=_admin.get("username", ""),
+            ip=request.client.host if request.client else "unknown",
+        )
+    except Exception as e:
+        _log.warning("[audit] kb.metadata.update 写入失败: %s", e)
+    return {"ok": True, "chunks": n}
 
 
 @app.get("/api/documents/{doc_id}/chunks")
@@ -722,7 +808,7 @@ async def list_sessions(page: int = 1, page_size: int | None = None, _user: dict
 
 @app.post("/api/sessions")
 async def create_session(_user: dict = Depends(get_current_user)):
-    return db.create_session(user_id=_user["id"])
+    return {"id": db.create_session(user_id=_user["id"])}
 
 
 @app.get("/api/sessions/{session_id}/messages")
@@ -1144,13 +1230,47 @@ async def kb_health(_admin: dict = Depends(require_role("admin"))):
 
 
 @app.post("/api/kb/preview")
-async def kb_preview(payload: dict, _admin: dict = Depends(require_role("admin"))):
-    """前端上传弹窗实时预览：接收文本 + chunk_config → 返回切分结构"""
-    from core.parser import preview_chunks
-    text = payload.get("text", "")
-    chunk_config = payload.get("chunk_config") or {}
-    preprocess_rules = payload.get("preprocess_rules") or {}
-    return preview_chunks(text, chunk_config, preprocess_rules)
+async def kb_preview(
+    file: UploadFile | None = File(None),
+    text: str | None = Form(None),
+    chunk_config: str | None = Form(None),
+    preprocess_rules: str | None = Form(None),
+    _admin: dict = Depends(require_role("admin")),
+):
+    """前端上传弹窗实时预览（统一 multipart/form-data）：
+    - 纯文本：前端传 text=纯文本 字符串
+    - 二进制：前端传 file=文件，后端用 parse_file 解
+    """
+    from core.parser import preview_chunks, parse_file
+
+    cfg = {}
+    rules = {}
+    if chunk_config:
+        try: cfg = json.loads(chunk_config)
+        except: pass
+    if preprocess_rules:
+        try: rules = json.loads(preprocess_rules)
+        except: pass
+
+    if file is not None:
+        raw = await file.read()
+        import tempfile, os
+        ext = os.path.splitext(file.filename or "")[1].lower()
+        try:
+            with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tf:
+                tf.write(raw)
+                tmp_path = tf.name
+            parsed = parse_file(tmp_path)
+            text_content = parsed.get("text", "") if isinstance(parsed, dict) else str(parsed or "")
+            os.unlink(tmp_path)
+        except Exception as e:
+            raise HTTPException(400, f"预览解析失败: {e}")
+    elif text:
+        text_content = text
+    else:
+        raise HTTPException(400, "需要传 text 或 file")
+
+    return preview_chunks(text_content, cfg, rules)
 
 
 # ---------- 图片知识库 ----------
@@ -1274,7 +1394,7 @@ async def delete_agent(agent_id: int, _admin: dict = Depends(require_role("admin
 
 # ---------- 聊天（SSE 流式） ----------
 class ChatRequest(BaseModel):
-    session_id: str
+    session_id: str | int  # 前端可能传数字，统一转字符串
     message: str
     model: str = ""      # 为空则用默认模型
     use_kb: bool = True  # 是否检索知识库（关闭则直接与大模型对话）
@@ -1282,6 +1402,11 @@ class ChatRequest(BaseModel):
     use_tools: bool = True  # 是否启用 Agent 工具调用
     enabled_tools: list[str] | None = None  # 允许使用的工具名列表，None 表示全部可用
     images: list[str] = []  # base64 编码图片（多模态），有图时自动切换视觉模型
+
+    @field_validator("session_id", mode="before")
+    @classmethod
+    def _session_id_to_str(cls, v):
+        return str(v)
 
 
 @app.get("/api/tools")
@@ -1300,6 +1425,71 @@ async def list_providers():
     return available_providers()
 
 
+# 名称命中这些关键字的一律视为向量/重排模型，不在对话模型下拉框中出现
+_NON_CHAT_MODEL_KEYS = ("embed", "bge", "rerank", "minilm", "e5-", "gte-", "nomic")
+
+
+class SynonymItem(BaseModel):
+    key: str = ""
+    synonyms: list[str] = []
+
+
+def _synonyms_path() -> str:
+    return os.path.join(config.DATA_DIR, "synonyms.json")
+
+
+@app.get("/api/synonyms")
+async def get_synonyms(_admin: dict = Depends(require_role("admin"))):
+    """读取同义词词典（key=标准词, value=同义词列表）"""
+    path = _synonyms_path()
+    items = []
+    try:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            items = [{"key": k, "synonyms": v} for k, v in raw.items()
+                     if not k.startswith("_") and isinstance(v, list)]
+    except Exception as e:
+        _log.warning("[synonyms] 读取失败: %s", e)
+    return {"items": items}
+
+
+@app.put("/api/synonyms")
+async def save_synonyms(body: list[SynonymItem], request: Request,
+                        _admin: dict = Depends(require_role("admin"))):
+    """整体保存同义词词典；写入后 rag 侧按 mtime 自动热加载，立即生效"""
+    data = {"_comment": "key=标准词, value=同义词数组。检索前命中 key 会扩展出多条查询，改完立即生效。"}
+    for it in body:
+        k = (it.key or "").strip()
+        if not k:
+            continue
+        vals = []
+        for s in it.synonyms:
+            s = (s or "").strip()
+            if s and s not in vals:
+                vals.append(s)
+        if vals:
+            data[k] = vals
+
+    path = _synonyms_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, path)
+
+    try:
+        db.write_audit(
+            action="kb.synonyms.update", resource_type="config", resource_id="synonyms",
+            detail=json.dumps({"count": len(data) - 1}, ensure_ascii=False),
+            actor_user_id=_admin.get("id"), actor_username=_admin.get("username", ""),
+            ip=request.client.host if request.client else "unknown",
+        )
+    except Exception as e:
+        _log.warning("[audit] kb.synonyms.update 写入失败: %s", e)
+    return {"ok": True, "count": len(data) - 1}
+
+
 @app.get("/api/models")
 async def list_models():
     """读取 Ollama 已安装模型（过滤掉 embedding 模型）"""
@@ -1310,10 +1500,16 @@ async def list_models():
         r.raise_for_status()
     except Exception:
         raise HTTPException(502, "无法连接 Ollama，请确认服务已启动")
-    models = [
-        m["name"] for m in r.json().get("models", [])
-        if "embedding" not in m.get("capabilities", [])
-    ]
+    models = []
+    for m in r.json().get("models", []):
+        name = m.get("name", "")
+        caps = m.get("capabilities") or []
+        # 双重过滤：能力标记 + 名称关键字，避免自定义 GGUF 向量模型漏进对话列表
+        if "embedding" in caps:
+            continue
+        if any(k in name.lower() for k in _NON_CHAT_MODEL_KEYS):
+            continue
+        models.append(name)
     return models
 
 
@@ -1329,9 +1525,13 @@ async def list_embed_models(_admin: dict = Depends(require_role("admin"))):
         raise HTTPException(502, "无法连接 Ollama，请确认服务已启动")
     models = []
     for m in r.json().get("models", []):
-        if "embedding" in m.get("capabilities", []):
-            dim = m.get("details", {}).get("embedding_length", 0)
-            models.append({"name": m["name"], "dim": dim})
+        name = m.get("name", "")
+        caps = m.get("capabilities") or []
+        is_embed = "embedding" in caps or any(k in name.lower() for k in _NON_CHAT_MODEL_KEYS)
+        if not is_embed:
+            continue
+        dim = m.get("details", {}).get("embedding_length", 0)
+        models.append({"name": name, "dim": dim})
     # 标记默认
     for m in models:
         m["default"] = (m["name"] == config.EMBED_MODEL)
@@ -1340,6 +1540,24 @@ async def list_embed_models(_admin: dict = Depends(require_role("admin"))):
 
 # 敏感词命中时的固定回复
 SENSITIVE_REPLY = "抱歉，您的问题包含敏感内容，无法回答。请换个问题试试。"
+
+
+def _is_degenerate_repetition(text: str) -> bool:
+    """检测小模型退化：短片段在尾部高频重复（如 principles principles…）"""
+    if len(text) < 240:
+        return False
+    tail = text[-800:]
+    for unit in (4, 6, 8, 12, 16):
+        if len(tail) < unit * 12:
+            continue
+        probe = tail[-unit:]
+        if not probe.strip():
+            continue
+        cnt = tail.count(probe)
+        # 重复片段需同时满足"次数够多"和"占比过半"，避免正常文本误判
+        if cnt >= 12 and cnt * unit >= len(tail) * 0.5:
+            return True
+    return False
 
 
 def _fixed_response(text):
@@ -1382,10 +1600,12 @@ def _parse_tool_call(text):
 
 
 @app.post("/api/chat")
-async def chat(req: ChatRequest, _user: dict = Depends(get_current_user)):
+async def chat(req: ChatRequest, request: Request, _user: dict = Depends(get_current_user)):
     question = req.message.strip()
     if not question:
         raise HTTPException(400, "消息不能为空")
+
+    _ip = request.client.host if request.client else "unknown"
 
     import uuid as _uuid
     trace_id = _uuid.uuid4().hex[:8]
@@ -1508,6 +1728,24 @@ async def chat(req: ChatRequest, _user: dict = Depends(get_current_user)):
                    f"命中{len(sources) if sources else 0}条" + (f"，最高分 {max((s.get('score',0) for s in sources), default=0):.3f}" if sources else ""),
                    detail=_kb_detail)
 
+            # ★ 向量检索命中审计（检索后立即写，保证即使生成被打断也能记录）
+            try:
+                db.write_audit(
+                    action="rag.retrieve",
+                    resource_type="session", resource_id=str(req.session_id) if req.session_id else "",
+                    result="success",
+                    detail=json.dumps({
+                        "question": question[:200],
+                        "matched": bool(matched),
+                        "sources": _kb_detail[:10] if _kb_detail else [],
+                    }, ensure_ascii=False),
+                    actor_user_id=_user.get("id"),
+                    actor_username=_user.get("username", ""),
+                    ip=_ip,
+                )
+            except Exception as _audit_err:
+                _log.warning("[audit] 写入失败: %s", _audit_err)
+
             # ⑤-补：RAG 没召回到 → exemplar 向量路由兜底
             #    只有规则没命中 + RAG 没召回 + exemplar 触发，才走这个分支
             #    （解决 bge-m3 语义空间噪声导致 exemplar 在有资料时误截胡的问题）
@@ -1612,9 +1850,19 @@ async def chat(req: ChatRequest, _user: dict = Depends(get_current_user)):
             gen_start = _time.time()
             yield f"data: {json.dumps({'type': 'stage', 'content': '✍️ 正在生成回答…', 'elapsed_ms': int((_time.time() - chat_start) * 1000)}, ensure_ascii=False)}\n\n"
 
+            degenerate = False
             for token in ollama_client.chat_stream(messages, req.model or None, images=all_images or None):
                 answer += token
                 yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
+                if _is_degenerate_repetition(answer):
+                    degenerate = True
+                    break
+            if degenerate:
+                _stage("生成回答", "error", question, "检测到重复循环，已中断",
+                       detail={"answer_head": answer[:200]})
+                answer = ("抱歉，本次回答生成异常（出现重复循环），已自动中断。"
+                          "请重试，或把问题描述得更具体一些。")
+                yield f"data: {json.dumps({'type': 'replace', 'content': answer}, ensure_ascii=False)}\n\n"
             # ⑧ 输出敏感词检测：命中则整段替换为安全回复
             if settings.contains_sensitive(answer):
                 answer = SENSITIVE_REPLY
@@ -1650,6 +1898,30 @@ async def chat(req: ChatRequest, _user: dict = Depends(get_current_user)):
                 print(f"[chat] 问答日志记录失败: {e}")
             # 记录链路追踪
             db.add_trace(trace_id, req.session_id, question, answer, total_ms, stages, error="")
+
+            # ★ 提前写检索审计（已在 L1598 处执行）
+
+            # ★ 新增：回答质量评估（词面版快速评估，零延迟写入 audit log）
+            try:
+                from core.ragas_eval import evaluate_sample
+                contexts = [s.get("parent") or s.get("text", "") for s in (sources or [])]
+                ev = evaluate_sample(question, answer, contexts, latency_ms=total_ms)
+                db.write_audit(
+                    action="rag.answer_eval",
+                    resource_type="session", resource_id=req.session_id,
+                    result="success",
+                    detail=json.dumps({
+                        "faithfulness": ev.faithfulness,
+                        "answer_relevance": ev.answer_relevance,
+                        "context_precision": ev.context_precision,
+                        "latency_ms": total_ms,
+                    }, ensure_ascii=False),
+                    actor_user_id=_user.get("id"),
+                    actor_username=_user.get("username", ""),
+                    ip=_ip,
+                )
+            except Exception as _audit_err:
+                _log.warning("[audit] 写入失败: %s", _audit_err)
             # ⑪ 无匹配提示转人工：
             #    - 开启 KB 但没召回到有效资料（matched=False 或最高分 < 0.3 低质量片段）
             #    - 模型回复包含 no_match 关键词（说明资料确实不相关）
@@ -1789,7 +2061,8 @@ async def api_logs(
     _: dict = Depends(require_role("superadmin")),
 ):
     from core.logger import read_logs
-    records = read_logs(limit=limit, level=level, keyword=keyword)
+    # 分页模式先读全量，保证 total / 页数准确；非分页沿用 limit
+    records = read_logs(limit=100000 if page_size else limit, level=level, keyword=keyword)
     if page_size is None:
         return records
     import math as _m
@@ -2204,6 +2477,96 @@ try:
             _async_queue.submit_task("cleanup_sessions", {"cutoff_ts": time.time()})
         except Exception as e:
             _log.warning("scheduler cleanup_sessions error: %s", e)
+
+    @_scheduler.scheduled_job("interval", hours=24, id="kb_doc_scan")
+    async def _job_kb_doc_scan():
+        """每 24 小时扫描 uploads/ vs 向量索引，重建过期/变更文档
+
+        逻辑:
+          1. 遍历 vector_store.list_documents() 拿到所有 doc_id → doc_name → metadata
+          2. 对每个 doc_name，检查 data/uploads/ 下同文件的 mtime
+          3. 如果 mtime > metadata.file_mtime → 该文档被修改 → 重建索引
+          4. 如果 uploads/ 里找不到对应文件 → 该文件被删 → 从向量库 remove
+          5. 同步执行（不阻塞其他 job，24h 周期的扫描很轻）
+        """
+        try:
+            import os
+            from core import vector_store as _vs
+            from core import parser as _parser
+            from core import ollama_client
+
+            _log.info("[kb_scan] 开始扫描 uploads/ vs 向量索引...")
+            store = _vs.store
+            upload_dir = getattr(_config, "UPLOAD_DIR", None) or os.path.join(_config.DATA_DIR, "uploads")
+            if not os.path.isdir(upload_dir):
+                _log.warning("[kb_scan] uploads dir 不存在，跳过")
+                return
+
+            doc_list = store.list_documents()
+            to_rebuild, to_remove = [], []
+
+            for d in doc_list:
+                doc_name = d.get("name", "")
+                doc_id = d.get("id", "")
+                # 在 uploads/ 找同名文件
+                found = None
+                for root, _, files in os.walk(upload_dir):
+                    for f in files:
+                        if f == doc_name and not f.startswith("."):
+                            found = os.path.join(root, f); break
+                    if found: break
+
+                if not found:
+                    to_remove.append((doc_id, doc_name)); continue
+
+                try:
+                    mtime = os.path.getmtime(found)
+                    chunks_of_doc = [c for c in store._chunks if c.get("doc_id") == doc_id]
+                    if chunks_of_doc:
+                        stored_mtime = chunks_of_doc[0].get("file_mtime", 0)
+                        if mtime > stored_mtime:
+                            to_rebuild.append((doc_id, doc_name, found, mtime))
+                except Exception as _e:
+                    _log.warning("[kb_scan] mtime 失败 %s: %s", found, _e)
+
+            _log.info("[kb_scan] 扫描结果: rebuild=%d, remove=%d", len(to_rebuild), len(to_remove))
+
+            for doc_id, doc_name in to_remove:
+                try:
+                    store.delete_document(doc_id)
+                    _log.info("[kb_scan] 已删除向量: doc_id=%s name=%s", doc_id, doc_name)
+                except Exception as _e:
+                    _log.error("[kb_scan] remove 失败 %s: %s", doc_id, _e)
+
+            for doc_id, doc_name, file_path, mtime in to_rebuild:
+                try:
+                    elements = _parser.parse_file_layout(file_path)
+                    chunks = _parser.build_layout_chunks(elements)
+                    chunk_texts, parent_texts, chunk_images, layout_meta, parent_ids = \
+                        _parser.layout_chunks_to_records(chunks)
+                    if not chunk_texts:
+                        _log.warning("[kb_scan] 分块为空: %s", doc_name); continue
+                    vectors = ollama_client.embed_texts(chunk_texts)
+                    existing = [c for c in store._chunks if c.get("doc_id") == doc_id]
+                    kb_id = existing[0].get("kb_id", "default") if existing else "default"
+                    new_meta = {
+                        "doc_type": os.path.splitext(file_path)[1].lstrip("."),
+                        "source_path": file_path,
+                        "file_size": os.path.getsize(file_path),
+                        "file_mtime": mtime,
+                    }
+                    store.update_document(
+                        doc_id, doc_name, chunk_texts, vectors,
+                        kb_id=kb_id, parent_texts=parent_texts,
+                        chunk_images=chunk_images, layout_meta=layout_meta,
+                        parent_ids=parent_ids, metadata=new_meta,
+                    )
+                    _log.info("[kb_scan] 已重建: doc_id=%s name=%s (%d chunks)", doc_id, doc_name, len(chunk_texts))
+                except Exception as _e:
+                    _log.error("[kb_scan] rebuild 失败 %s: %s", doc_name, _e, exc_info=True)
+
+        except Exception as _e:
+            _log.warning("scheduler kb_doc_scan error: %s", _e, exc_info=True)
 
     # 接入 FastAPI lifespan
     @app.on_event("startup")

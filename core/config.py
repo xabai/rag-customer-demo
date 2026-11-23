@@ -8,7 +8,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     DB_PORT: int = 5432
     DB_NAME: str = "rag_bot"
     DB_USER: str = "postgres"
-    DB_PASSWORD: str = "123456"
+    DB_PASSWORD: str = ""                   # 从 .env / 环境变量注入，勿写死
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
     DB_SQLITE_PATH: str = str(_PROJECT_ROOT / "data" / "chat.db")
@@ -41,9 +41,9 @@ class Settings(BaseSettings):
     REDIS_URL: str = ""                     # 留空则禁用，限流/session 退化为内存
 
     # ============ 安全 ============
-    JWT_SECRET: str = "CHANGE-ME-IN-PRODUCTION-rabbit-hole-pencil-skyscraper-42"
+    JWT_SECRET: str = ""                    # 从 .env / 环境变量注入，勿写死
     JWT_ALG: str = "HS256"
-    JWT_EXPIRE_MINUTES: int = 120
+    JWT_EXPIRE_MINUTES: int = 360
     JWT_REFRESH_EXPIRE_DAYS: int = 30
 
     CORS_ORIGINS: str = "http://localhost:8008,http://127.0.0.1:8008"
@@ -105,6 +105,17 @@ class Settings(BaseSettings):
         extra="ignore",
         case_sensitive=True,
     )
+
+    # ---------- 校验 ----------
+    @model_validator(mode="after")
+    def _check_secrets(self):
+        """非 dev 环境必须显式配置数据库口令与 JWT 密钥，避免空值/默认值上线"""
+        if self.APP_ENV != "dev":
+            if not self.DB_PASSWORD:
+                raise ValueError("DB_PASSWORD 未配置：请在 .env 中设置")
+            if not self.JWT_SECRET or "CHANGE-ME" in self.JWT_SECRET:
+                raise ValueError("JWT_SECRET 未配置或仍为默认值：请在 .env 中设置随机字符串")
+        return self
 
     # ---------- 计算属性 ----------
     @computed_field  # type: ignore[prop-decorator]

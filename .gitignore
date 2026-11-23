@@ -1,3 +1,8 @@
+# 密钥与环境变量（务必不要提交）
+.env
+*.env
+!.env.example
+
 # Python
 __pycache__/
 *.py[cod]
@@ -20,6 +25,13 @@ data/settings.json
 data/kb_images/
 data/uploads/
 data_location.txt
+*.docx
+
+# 临时脚本（仅项目根目录，不误伤 core/ 等子目录）
+/_*.py
+
+# 工具产物
+.trae-html-share-packages/
 
 # 日志 & 临时脚本
 *.log
@@ -58,3 +70,12 @@ _test_*.py
 _sep_trace.py
 _create_db.py
 _inventory.py
+
+# 二进制与文档
+*.pdf
+*.pptx
+*.xlsx
+*.csv
+*.db
+*.sqlite3
+*.npy

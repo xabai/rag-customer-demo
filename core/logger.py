@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import logging.handlers
 import os
+import re
 import sys
 import threading
 from contextvars import ContextVar
@@ -116,21 +117,44 @@ def log_performance(logger: logging.Logger, stage: str, elapsed_ms: float, **ext
 
 
 def read_logs(limit: int = 200, level: str = "", keyword: str = "") -> list[dict]:
-    """超级管理员看板用：读日志文件"""
+    """超级管理员看板用：读日志文件
+
+    返回结构: [{"line": 单行预览, "detail": 完整文本(含堆栈)}]
+    - 以时间戳开头的行视为一条新日志，后续非时间戳行（traceback 等）合并进上一条
+    - line 只保留首行并截断，避免整段堆栈把页面撑乱
+    """
     if not os.path.exists(LOG_FILE):
         return []
     records = []
     try:
         with open(LOG_FILE, "r", encoding="utf-8", errors="ignore") as f:
-            lines = f.readlines()
-        lines = lines[-limit * 2:]
-        for line in reversed(lines):
-            line = line.rstrip()
-            if not line: continue
-            if level and f"[{level.upper()}]" not in line: continue
-            if keyword and keyword.lower() not in line.lower(): continue
-            records.append({"line": line})
-            if len(records) >= limit: break
+            lines = [l.rstrip() for l in f.readlines()]
+
+        # ① 按时间戳分组，把 traceback 续行合并到所属日志
+        groups: list[list[str]] = []
+        for line in lines:
+            if not line.strip():
+                continue
+            if re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", line) or not groups:
+                groups.append([line])
+            else:
+                groups[-1].append(line)
+
+        # ② 倒序取最近的记录
+        for g in reversed(groups):
+            first = g[0]
+            if level and f"[{level.upper()}]" not in first:
+                continue
+            full = "\n".join(g)
+            if keyword and keyword.lower() not in full.lower():
+                continue
+            extra = len(g) - 1
+            preview = first if len(first) <= 300 else first[:300] + "…"
+            if extra:
+                preview += f"   …（另有 {extra} 行堆栈）"
+            records.append({"line": preview, "detail": full})
+            if len(records) >= limit:
+                break
         records.reverse()
     except Exception:
         pass

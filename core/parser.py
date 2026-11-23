@@ -900,7 +900,7 @@ def _parse_doc_via_ole(path, doc_name):
 
 
 def _parse_xlsx_layout(path, doc_name, _use_xls=False):
-    """Excel：每个 sheet 的表头 + 数据行"""
+    """Excel：每个 sheet 的表头 + 数据行 + 每行自然语言描述"""
     if _use_xls:
         import xlrd
         wb = xlrd.open_workbook(path)
@@ -917,6 +917,7 @@ def _parse_xlsx_layout(path, doc_name, _use_xls=False):
         if not rows:
             continue
         lines = []
+        header = rows[0] if rows else []
         for row in rows:
             cells = [str(c).strip().replace("\n", " ") for c in row if c is not None]
             if not cells:
@@ -925,6 +926,7 @@ def _parse_xlsx_layout(path, doc_name, _use_xls=False):
         if lines:
             cols = lines[0].count("|") - 1
             lines.insert(1, "|" + "|".join(["---"] * cols) + "|")
+            # 工作表 heading + 整表 markdown
             elements.append(LayoutElement(
                 type_="heading", content=f"工作表: {sname}",
                 parent_id=1, doc_name=doc_name,
@@ -933,6 +935,22 @@ def _parse_xlsx_layout(path, doc_name, _use_xls=False):
                 type_="table", content="\n".join(lines),
                 parent_id=1, doc_name=doc_name,
             ))
+            # ★ 新增：每行生成一个自然语言描述的 text element（行级粒度，精确问答用）
+            for row_idx, row in enumerate(rows[1:], start=2):
+                parts = []
+                for col_idx, val in enumerate(row):
+                    if val is None:
+                        continue
+                    col_name = str(header[col_idx]).strip() if col_idx < len(header) and header[col_idx] is not None else f"列{col_idx+1}"
+                    v = str(val).strip()
+                    if v:
+                        parts.append(f"{col_name} {v}")
+                if parts:
+                    row_text = f"[{sname}] " + "，".join(parts)
+                    elements.append(LayoutElement(
+                        type_="text", content=row_text,
+                        parent_id=1, doc_name=doc_name,
+                    ))
     return elements
 
 

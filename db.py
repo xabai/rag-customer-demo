@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""SQLite 存储：多会话与消息历史"""
+"""统一数据层 —— SQLite 实现（当 DB_DRIVER=postgresql 时，核心函数被 db_pg 覆盖）"""
 import json
 import sqlite3
 import threading
@@ -1638,3 +1638,26 @@ def _failure_rows_to_dicts(rows):
         }
         for r in rows
     ]
+
+
+# ── 条件覆盖：核心函数走 PostgreSQL ORM（如果 DB_DRIVER=postgresql） ──
+# 注意：这块必须放在文件末尾，否则会被上面的 def 定义覆盖
+try:
+    from core.config import get_settings as _get_settings
+    if _get_settings().DB_DRIVER == "postgresql":
+        from db_pg import (
+            get_user_by_username, get_user_by_id, list_users,
+            create_user, update_user, delete_user, toggle_user, change_password, list_roles,
+            create_session, list_sessions, rename_session, delete_session,
+            add_message, get_messages,
+            create_kb, get_kb, list_kb, delete_kb, update_kb,
+            write_audit, list_audit_logs,
+            create_user_session, revoke_user_session, revoke_all_user_sessions,
+            is_session_valid, check_account_locked, record_login_failure,
+            reset_failed_attempts, list_auth_failures,
+        )
+        print("[db] 核心函数已切换到 PostgreSQL ORM 实现")
+except Exception as _e:
+    import traceback
+    print(f"[db] PG 覆盖跳过（{_e}），保持 SQLite 实现")
+    traceback.print_exc()

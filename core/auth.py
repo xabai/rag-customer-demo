@@ -26,7 +26,7 @@ import db as _db
 # --- 配置 ---
 JWT_SECRET = os.environ.get("RAG_JWT_SECRET", "rag-bot-dev-secret-change-in-prod-2026")
 JWT_ALGO = "HS256"
-ACCESS_TOKEN_TTL = 900        # 15 分钟
+ACCESS_TOKEN_TTL = 21600        # 15 分钟
 SESSION_TOKEN_TTL = 604800    # 7 天（刷新窗口）
 
 

@@ -77,8 +77,19 @@ def context_precision(question: str, contexts: list[str]) -> float:
 
 
 def evaluate_sample(question: str, answer: str, contexts: list[str],
-                    latency_ms: float = 0.0) -> EvalResult:
-    """评估单个 Q&A 样本"""
+                    latency_ms: float = 0.0, use_llm: bool = True) -> EvalResult:
+    """评估单个 Q&A 样本
+
+    use_llm=True 时，会尝试用本地 Ollama 做 LLM-as-Judge（更准确）。
+    如果 Ollama 不可用，自动 fallback 到词面版（零依赖但粗糙）。
+    """
+    # 先尝试 LLM judge
+    if use_llm:
+        llm_result = _evaluate_with_llm(question, answer, contexts, latency_ms)
+        if llm_result is not None:
+            return llm_result
+
+    # Fallback: 词面版
     t0 = time.time()
     f = faithfulness(answer, contexts)
     a = answer_relevance(question, answer)
@@ -90,12 +101,95 @@ def evaluate_sample(question: str, answer: str, contexts: list[str],
         context_precision=round(c, 3),
         latency_ms=round(latency_ms, 2),
         details={
+            "mode": "lexical_fallback",
             "question_len": len(question),
             "answer_len": len(answer),
             "context_count": len(contexts),
             "extra_eval_ms": extra_ms,
         },
     )
+
+
+# ──────────────────────────────────────────────────────
+# LLM-as-Judge 实现
+# ──────────────────────────────────────────────────────
+
+_JUDGE_PROMPT_TEMPLATE = """你是 RAG 系统的评估专家。请根据问题、检索到的文档片段和 AI 回答，从三个维度打分（每项 0-5，再归一到 0-1）。
+严格按 JSON 输出，不要额外文字：
+{{"faithfulness": <0-5>, "relevance": <0-5>, "precision": <0-5>, "reason": "<一句话理由>"}}
+
+【问题】
+{question}
+
+【检索到的文档片段】
+{contexts_text}
+
+【AI 回答】
+{answer}
+
+打分标准：
+- faithfulness (忠实度): 回答中的每个关键断言是否都能从文档片段推出（5=完全不瞎说, 0=完全瞎编）
+- relevance (相关性): 回答是否针对问题（5=完美切题, 0=答非所问）
+- precision (精度): 检索到的文档片段里多少是真正有用的（5=每段都相关, 0=全是噪声）
+"""
+
+
+def _evaluate_with_llm(question: str, answer: str, contexts: list[str],
+                       latency_ms: float) -> EvalResult | None:
+    """尝试用 Ollama 做 LLM judge。不可用时返回 None 让调用方 fallback。"""
+    try:
+        from core import ollama_client
+    except Exception:
+        return None
+
+    t0 = time.time()
+    try:
+        contexts_text = "\n\n---\n\n".join(contexts[:5])  # 最多喂 5 段，省 token
+        prompt = _JUDGE_PROMPT_TEMPLATE.format(
+            question=question[:500],
+            contexts_text=contexts_text[:2000],
+            answer=answer[:1000],
+        )
+        raw = ollama_client.chat_once(
+            [{"role": "system", "content": "你是严格的 RAG 评估专家，只输出 JSON。"},
+             {"role": "user", "content": prompt}],
+            timeout=45,
+            fallback="",  # 失败返回空串而不是抛异常
+        )
+        if not raw or not raw.strip():
+            return None
+
+        # 从 LLM 输出里提取 JSON
+        import json as _json
+        import re as _re
+        match = _re.search(r"\{[^{}]+\}", raw, _re.DOTALL)
+        if not match:
+            return None
+        scores = _json.loads(match.group(0))
+
+        def _norm(k):
+            v = float(scores.get(k, 0))
+            return max(0.0, min(1.0, v / 5.0))
+
+        extra_ms = int((time.time() - t0) * 1000)
+        return EvalResult(
+            faithfulness=round(_norm("faithfulness"), 3),
+            answer_relevance=round(_norm("relevance"), 3),
+            context_precision=round(_norm("precision"), 3),
+            latency_ms=round(latency_ms, 2),
+            details={
+                "mode": "llm_judge",
+                "question_len": len(question),
+                "answer_len": len(answer),
+                "context_count": len(contexts),
+                "judge_ms": extra_ms,
+                "reason": scores.get("reason", ""),
+            },
+        )
+    except Exception as _e:
+        import logging as _logging
+        _logging.getLogger(__name__).warning(f"LLM judge 失败，回退词面版: {_e}")
+        return None
 
 
 def evaluate_batch(samples: list[dict]) -> dict:

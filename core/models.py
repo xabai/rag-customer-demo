@@ -14,8 +14,9 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     BigInteger, Boolean, CheckConstraint, DateTime, Float, ForeignKey,
-    Index, Integer, String, Text, UniqueConstraint, func, event,
+    Index, Integer, JSON, String, Text, UniqueConstraint, func, event,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -213,6 +214,7 @@ class KnowledgeBase(Base, _TimestampMixin, _TenantMixin):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     collection_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    chunk_config: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON 字符串
     doc_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     owner_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=True, index=True)
 
@@ -256,6 +258,8 @@ class ChatMessage(Base, _TimestampMixin, _TenantMixin):
     prompt_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     completion_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     model: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    images: Mapped[list | dict | None] = mapped_column(JSONB, nullable=True)
+    sources: Mapped[list | dict | None] = mapped_column(JSONB, nullable=True)
 
 
 # ================================================================

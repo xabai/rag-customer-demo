@@ -4,8 +4,26 @@ import re
 import db
 from core import ollama_client
 
-# 超过此轮数触发摘要压缩
-SUMMARY_THRESHOLD = 12
+# 超过此轮数 OR token 数触发摘要压缩
+SUMMARY_THRESHOLD = 12          # 轮数阈值（原有逻辑保留）
+TOKEN_THRESHOLD = 3000          # 总 token 阈值（双阈值中任意一个先到就触发）
+MODEL_MAX_TOKENS = 8000         # 模型窗口上限
+
+# 粗略 token 估算：中文 1-1.5 字/token，英文 4 字/token
+def estimate_tokens(text: str) -> int:
+    if not text:
+        return 0
+    chinese_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff' or c in '，。！？；：（）《》、—·')
+    remaining = len(text) - chinese_chars
+    return chinese_chars + (remaining // 4)
+
+def history_token_estimate(history: list[dict]) -> int:
+    total = 0
+    for m in history:
+        total += estimate_tokens(m.get("role", ""))
+        total += estimate_tokens(m.get("content", ""))
+        total += 4
+    return total
 
 SUMMARY_PROMPT = (
     "你是对话摘要助手。请把以下对话历史压缩成一段简洁摘要，保留关键事实、用户需求、已达成的结论。"
@@ -91,9 +109,13 @@ def _parse_extracted(text):
 
 
 def maybe_summarize(session_id, history, user_id=None):
-    """对话轮数超过阈值时，把较早的消息压缩成摘要记忆，返回用于拼装的 history"""
-    if len(history) <= SUMMARY_THRESHOLD:
+    """双阈值触发：轮数超 OR token 超 → 压缩前 6 轮为 LLM 摘要"""
+    total_tokens = history_token_estimate(history)
+    rounds = len(history)
+    if rounds <= SUMMARY_THRESHOLD and total_tokens <= TOKEN_THRESHOLD:
         return history
+
+    print(f"[memory] 触发摘要压缩: 轮数={rounds}/{SUMMARY_THRESHOLD}, tokens={total_tokens}/{TOKEN_THRESHOLD}")
     keep = 6
     old_msgs = history[:-keep]
     recent = history[-keep:]

@@ -11,11 +11,54 @@
   image_weight          控制 图文向量 vs 其他通道（默认 0.3）
 """
 import re
+import os as _os
+import json as _json
 
 import config
 from core import ollama_client, settings
 from core.bm25 import bm25
 from core.vector_store import store
+
+# ── 同义词词典（JSON 文件，改完自动生效）──
+_SYN_PATH = _os.path.join(config.DATA_DIR, "synonyms.json")
+_SYN_CACHE: dict | None = None
+_SYN_MTIME: float = 0.0
+
+def _load_synonyms() -> dict:
+    global _SYN_CACHE, _SYN_MTIME
+    try:
+        if _os.path.exists(_SYN_PATH):
+            mtime = _os.path.getmtime(_SYN_PATH)
+            if _SYN_CACHE is None or mtime != _SYN_MTIME:
+                with open(_SYN_PATH, "r", encoding="utf-8") as f:
+                    raw = _json.load(f)
+                _SYN_CACHE = {k: v for k, v in raw.items() if not k.startswith("_")}
+                _SYN_MTIME = mtime
+    except Exception:
+        _SYN_CACHE = {}
+    return _SYN_CACHE or {}
+
+
+def expand_synonyms(query: str) -> list[str]:
+    """把查询中的词替换成同义词，返回 [原查询, 扩展查询1, ...] 去重列表
+
+    原理：遍历词典 key，key 出现在 query 里 → 生成 query.replace(key, syn) 的变体
+    例："考试作弊怎么处理" + {"考试作弊": ["考试违纪", "考试违规"]}
+       → ["考试作弊怎么处理", "考试违纪怎么处理", "考试违规怎么处理"]
+    """
+    if not query:
+        return [query]
+    syns = _load_synonyms()
+    if not syns:
+        return [query]
+    expansions = [query]
+    for key, synonyms in syns.items():
+        if key in query:
+            for syn in synonyms:
+                expanded = query.replace(key, syn)
+                if expanded not in expansions:
+                    expansions.append(expanded)
+    return expansions
 
 # 查询改写提示词：把依赖上下文的追问改写成独立完整的检索问题
 REWRITE_PROMPT = (
@@ -154,18 +197,48 @@ def retrieve(question, rerank_enabled=True, vector_weight=0.7, candidates=20,
         return "", [], []
     candidate_k = max(candidates, config.TOP_K) if rerank_enabled else config.TOP_K
 
-    # ---- 通道 1：文本向量（bge-m3，每次必走）----
+    # ---- 同义词扩展：生成多条检索查询 ----
+    query_variants = expand_synonyms(question)
+    if len(query_variants) > 1:
+        print(f"[RAG] 同义词扩展: 原查询 '{question}' → {len(query_variants)} 条变体 {query_variants[1:]}")
+
+    # ---- 通道 1：文本向量（bge-m3，每次必走，多路同义词）----
     vec_hits = []
+    seen_chunk_keys = set()  # 多路合并去重：同 chunk 取最高分
     try:
-        query_vec = ollama_client.embed_query(question)
-        vec_hits = store.search_text(query_vec, top_k=candidate_k, kb_id=kb_id)
+        for q_var in query_variants:
+            qv = ollama_client.embed_query(q_var)
+            for s, c, _ in store.search_text(qv, top_k=candidate_k, kb_id=kb_id):
+                ck = (c.get("doc_id", ""), c.get("text", "")[:128])
+                if ck in seen_chunk_keys:
+                    # 多路同一 chunk：取最高分
+                    for idx, (ex_s, ex_c, ex_i) in enumerate(vec_hits):
+                        if (ex_c.get("doc_id", ""), ex_c.get("text", "")[:128]) == ck:
+                            if s > ex_s:
+                                vec_hits[idx] = (s, c, ex_i)
+                            break
+                    continue
+                seen_chunk_keys.add(ck)
+                vec_hits.append((s, c, _))
     except Exception as e:
         print(f"[RAG] 文本向量嵌入失败: {e}")
 
-    # ---- 通道 2：BM25 ----
+    # ---- 通道 2：BM25（也走同义词多路）----
     bm25_hits = []
     if hybrid_enabled:
-        bm25_hits = bm25.search(question, top_k=candidate_k)
+        seen_bm25 = set()
+        for q_var in query_variants:
+            for s, c in bm25.search(q_var, top_k=candidate_k):
+                ck = (c.get("doc_id", ""), c.get("text", "")[:128])
+                if ck in seen_bm25:
+                    for idx, (ex_s, ex_c) in enumerate(bm25_hits):
+                        if (ex_c.get("doc_id", ""), ex_c.get("text", "")[:128]) == ck:
+                            if s > ex_s:
+                                bm25_hits[idx] = (s, ex_c)
+                            break
+                    continue
+                seen_bm25.add(ck)
+                bm25_hits.append((s, c))
 
     # ---- 通道 3：图文向量（qwen3-vl-embed）----
     image_hits = []

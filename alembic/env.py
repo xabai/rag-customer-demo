@@ -16,6 +16,11 @@ if config.config_file_name is not None:
 
 # 加载所有 ORM 模型（autogenerate 需要）
 from core.models import Base  # noqa: F401  — 所有模型已在 models.py 里 import
+from core.config import get_settings
+
+# 数据库连接串统一从 .env / 环境变量读取，alembic.ini 里不再写死凭据
+# 注意：ConfigParser 会把 % 当插值符，需要转义成 %%
+config.set_main_option("sqlalchemy.url", get_settings().DATABASE_URL.replace("%", "%%"))
 
 target_metadata = Base.metadata
 
