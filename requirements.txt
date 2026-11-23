@@ -1,10 +1,36 @@
+# ---------- Web ----------
 fastapi
-uvicorn
+uvicorn[standard]
 python-multipart
+
+# ---------- 数据库 ----------
+sqlalchemy>=2.0
+psycopg[binary]>=3.1
+alembic
+
+# ---------- 配置与安全 ----------
+pydantic>=2
+pydantic-settings
+PyJWT
+bcrypt
+
+# ---------- 文档解析 ----------
 python-docx
+python-pptx
 openpyxl
 xlrd
 olefile
+PyMuPDF
+
+# ---------- 基础 ----------
 numpy
 requests
-psutil>=5.9.8
+psutil
+
+# ---------- 监控 / 调度（缺失时对应功能自动降级）----------
+prometheus-client
+apscheduler
+
+# ---------- 可选 ----------
+# redis                  # 多实例部署 / 跨进程会话与限流
+# rapidocr-onnxruntime   # 图片 OCR，缺失时跳过图片文字提取
