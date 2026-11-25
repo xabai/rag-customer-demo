@@ -15,6 +15,7 @@ build/
 .eggs/
 
 # 运行时数据（隐私 + 可自动重建）
+data/chat.db*
 data/chat.db
 data/chat.db-journal
 data/chroma/
